@@ -47,7 +47,9 @@ if ($DryRun) {
 $tmp = Join-Path ([System.IO.Path]::GetTempPath()) ("asp-secrets-" + [guid]::NewGuid().ToString("N") + ".json")
 ($map | ConvertTo-Json -Compress) | Set-Content -LiteralPath $tmp -Encoding utf8
 try {
-  & wrangler secret bulk $tmp
+  # Use local wrangler (npx) — global installs are often outdated and reject
+  # the current Containers config format (scheduling_policy/images/exports).
+  & npx wrangler secret bulk $tmp
 } finally {
   Remove-Item -LiteralPath $tmp -Force -ErrorAction SilentlyContinue
 }
