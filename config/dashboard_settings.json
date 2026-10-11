@@ -1,10 +1,10 @@
 {
   "theme": {
-    "accent": "#00e5ff",
+    "accent": "#6c5ce7",
     "accent2": "#00d2ff",
     "glassBlur": "6px",
     "glassOpacity": 0.9,
-    "radius": 20,
+    "radius": "20px",
     "borderOpacity": 0.3,
     "font": "Inter",
     "bg": "aurora",
@@ -37,7 +37,7 @@
     "model": "meta/muse-glimmer-30b",
     "fallbackModels": [],
     "temperature": 0.8,
-    "maxTokens": 1000,
+    "maxTokens": 1024,
     "reasoning": "low"
   },
   "agent": {
@@ -104,7 +104,8 @@
   },
   "media": {
     "enabled": true,
-    "hostImagesDir": ""
+    "hostImagesDir": "",
+    "voice": "en-US-JennyNeural"
   },
   "platforms": {
     "tiktok": {
