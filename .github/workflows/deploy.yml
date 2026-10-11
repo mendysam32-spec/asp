@@ -1,0 +1,30 @@
+# Deploys ASP (Flask in Cloudflare Containers + Worker router) on every push to main.
+# Needs two GitHub repo secrets (Settings → Secrets → Actions):
+#   CLOUDFLARE_API_TOKEN  – token with Workers Scripts (Edit) + Containers (Edit)
+#   CLOUDFLARE_ACCOUNT_ID – 74d44c8ba83fe529f83b3e408e0366e1
+# Requires Workers Paid plan (Containers don't deploy on Free).
+name: Deploy ASP to Cloudflare
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+
+      - run: npm ci
+
+      - run: npx wrangler deploy
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
