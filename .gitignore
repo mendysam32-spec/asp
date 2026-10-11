@@ -1,0 +1,27 @@
+# Local Netlify folder
+.netlify
+
+# Secrets - never commit real keys
+.env
+config/youtube_token.json
+
+# Runtime data (per-machine state)
+data/*.log
+data/agent.log*
+data/media/*
+!data/media/.gitkeep
+data/content_library.json
+data/chat_history.json
+data/activity_log.json
+data/scheduled_posts.json
+data/transactions.json
+data/inbox.json
+data/notifications.json
+data/projects.json
+data/retry_queue.json
+
+# Python
+__pycache__/
+*.pyc
+.venv/
+venv/

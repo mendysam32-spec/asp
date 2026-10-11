@@ -1,0 +1,1987 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>GodEye — Neural Console</title>
+<style>
+:root{
+  --accent:#6c5ce7; --accent2:#00d2ff;
+  --blur:5px; --glass-op:.9; --radius:18px;
+  --border-op:.3; --font:'Inter',system-ui,sans-serif; --bg:aurora; --glow:1; --density:comfortable;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{
+  font-family:var(--font); color:#e7e9ff; min-height:100vh; overflow-x:hidden;
+  background:#070812; position:relative;
+}
+/* animated background presets */
+#bgfx{position:fixed;inset:0;z-index:-2}
+#bgfx .blob{position:absolute;border-radius:50%;filter:blur(90px);opacity:.5;animation:float 22s ease-in-out infinite}
+#bgfx .b1{width:48vw;height:48vw;left:-12vw;top:-15vh;background:var(--accent)}
+#bgfx .b2{width:40vw;height:40vw;right:-10vw;top:5vh;background:var(--accent2);animation-delay:-8s}
+#bgfx .b3{width:34vw;height:34vw;left:30vw;bottom:-18vh;background:#a55eea;animation-delay:-15s}
+@keyframes float{0%,100%{transform:translate(0,0) scale(1)}50%{transform:translate(6vw,4vh) scale(1.12)}}
+body[data-bg="grid"] #bgfx{background:
+  linear-gradient(rgba(255,255,255,.045) 1px,transparent 1px),
+  linear-gradient(90deg,rgba(255,255,255,.045) 1px,transparent 1px);
+  background-size:42px 42px}
+body[data-bg="depth"] #bgfx .blob{opacity:.28}
+body[data-bg="candy"] #bgfx .b1{background:linear-gradient(135deg,#ff6b6b,#ffd93d)}
+body[data-bg="candy"] #bgfx .b2{background:linear-gradient(135deg,#6bcbff,#b982ff)}
+body[data-bg="candy"] #bgfx .b3{background:linear-gradient(135deg,#ff8ed4,#6bffd0)}
+body[data-bg="mono"]{filter:saturate(.35)}
+body[data-density="compact"]{--pad:10px}
+body[data-density="spacious"]{--pad:26px}
+:root{--pad:18px}
+
+.glass{
+  background:linear-gradient(180deg, rgba(23,28,48,var(--glass-op)), rgba(13,17,34,var(--glass-op)));
+  backdrop-filter:blur(var(--blur)) saturate(130%);
+  -webkit-backdrop-filter:blur(var(--blur)) saturate(130%);
+  border:1px solid rgba(255,255,255,var(--border-op));
+  border-radius:var(--radius);
+  box-shadow:0 10px 40px rgba(0,0,0,.35);
+}
+[data-glow="true"] .glass{box-shadow:0 10px 40px rgba(0,0,0,.35),0 0 0 1px rgba(255,255,255,.04),0 0 34px -12px var(--accent)}
+[data-glow="false"] .glass{box-shadow:0 10px 40px rgba(0,0,0,.35)}
+
+.layout{display:flex;gap:var(--pad);padding:var(--pad);min-height:100vh}
+
+/* sidebar */
+.sidebar{width:236px;flex-shrink:0;position:sticky;top:var(--pad);height:calc(100vh - var(--pad)*2);display:flex;flex-direction:column;padding:20px 16px}
+.logo{display:flex;align-items:center;gap:12px;margin-bottom:26px}
+.logo .god-eye{width:40px;height:40px;border-radius:12px;background:radial-gradient(120% 120% at 30% 30%, rgba(255,255,255,0.12), transparent), linear-gradient(135deg, rgba(108,92,231,0.18), rgba(0,210,255,0.12));border:1px solid rgba(255,255,255,0.14);display:grid;place-items:center;box-shadow:0 0 22px color-mix(in srgb, var(--accent) 42%, transparent), 0 0 0 1px rgba(255,255,255,0.04) inset;animation:eyeIdle 4.2s ease-in-out infinite}
+.logo .god-eye.listening{animation:eyePulse 0.9s ease-in-out infinite; box-shadow:0 0 28px var(--accent2), 0 0 0 1px rgba(255,255,255,0.08) inset}
+.logo .god-eye.speaking{animation:eyeSpeak 0.45s ease-in-out infinite}
+@keyframes eyeIdle{0%,92%,100%{transform:scaleY(1)}94%{transform:scaleY(0.12)}96%{transform:scaleY(1)}}
+@keyframes eyePulse{0%,100%{transform:scale(1); filter:brightness(1)}50%{transform:scale(1.04); filter:brightness(1.18)}}
+@keyframes eyeSpeak{0%,100%{transform:scale(1)}50%{transform:scale(1.02)}}
+#eyeScan{animation:scanSweep 3.6s ease-in-out infinite}
+@keyframes scanSweep{0%,85%,100%{stroke-opacity:0; transform:translateY(0)} 88%{stroke-opacity:0.65} 92%{stroke-opacity:0}}
+.logo b{font-size:14.5px;letter-spacing:.2px;font-weight:750}
+.logo .wt p{font-size:15px;letter-spacing:.6px;font-weight:800;margin:0;line-height:1.15}
+.logo .wt b{display:block;font-size:12px;letter-spacing:4.5px;font-weight:500;color:#9aa2c1;margin-bottom:1px}
+.logo .wt span{display:block;font-size:10.5px;color:#9aa2c1;font-weight:400;letter-spacing:.4px}
+.nav{display:flex;flex-direction:column;gap:6px;flex:1}
+.nav button{display:flex;align-items:center;gap:12px;border:0;background:transparent;color:#b9c1e4;padding:11px 14px;border-radius:12px;font:inherit;font-size:13.5px;cursor:pointer;transition:.2s}
+.nav button:hover{background:rgba(255,255,255,.08);color:#fff}
+.nav button.on{background:linear-gradient(90deg,rgba(108,92,231,.28),rgba(0,210,255,.12));color:#fff;box-shadow:inset 0 0 0 1px rgba(255,255,255,.12)}
+.nav .ico{width:20px;text-align:center}
+.side-foot{font-size:11px;color:#8b93b8;line-height:1.7}
+.side-foot .dot{display:inline-block;width:8px;height:8px;border-radius:50%;background:#22c55e;box-shadow:0 0 10px #22c55e;margin-right:6px}
+
+/* main */
+.main{flex:1;display:flex;flex-direction:column;gap:var(--pad)}
+.topbar{display:flex;align-items:center;gap:14px;padding:14px 20px}
+.topbar h1{font-size:17px;font-weight:700}
+.topbar .crumbs{color:#9aa2c1;font-size:12px;margin-top:2px}
+.topbar .sp{margin-left:auto;display:flex;gap:10px;align-items:center}
+.chip{display:inline-flex;align-items:center;gap:8px;font-size:12px;padding:7px 13px;border-radius:999px;border:1px solid rgba(255,255,255,.16);background:rgba(255,255,255,.05)}
+.chip.ok b{color:#22c55e}
+.chip b{color:var(--accent2)}
+.gearbtn{width:40px;height:40px;border-radius:12px;border:1px solid rgba(255,255,255,.15);background:rgba(255,255,255,.06);color:#dfe3ff;font-size:18px;cursor:pointer;transition:.2s}
+.gearbtn:hover{transform:rotate(45deg)}
+
+/* widgets grid */
+.grid{display:grid;grid-template-columns:repeat(12,1fr);gap:var(--pad)}
+.card{grid-column:span 4;padding:20px}
+.card.wide{grid-column:span 8}
+.card h3{font-size:13px;letter-spacing:.8px;text-transform:uppercase;color:#aab3dd;display:flex;align-items:center;gap:8px;margin-bottom:16px}
+.card h3 .h-ico{color:var(--accent2)}
+.card .value{font-size:26px;font-weight:700;letter-spacing:-.5px}
+.card .sub{font-size:12px;color:#9aa2c1;margin-top:3px}
+
+.prow{display:flex;align-items:center;gap:12px;padding:11px 0;border-bottom:1px solid rgba(255,255,255,.07)}
+.prow:last-child{border-bottom:0}
+.prow .pa{width:34px;height:34px;border-radius:10px;display:grid;place-items:center;font-size:15px;background:rgba(255,255,255,.08)}
+.prow .pn{flex:1}
+.prow .pn b{font-size:13.5px;display:block}
+.prow .pn span{font-size:11.5px;color:#9aa2c1}
+.plugin{display:inline-flex;align-items:center;gap:6px;font-size:11px;padding:4px 10px;border-radius:999px}
+.plugin.on{background:rgba(34,197,94,.16);color:#4ade80}
+.plugin.off{background:rgba(239,68,68,.14);color:#f87171}
+.plugin.wait{background:rgba(250,204,21,.14);color:#facc15}
+.btn{display:inline-flex;align-items:center;gap:8px;border:0;background:linear-gradient(135deg,var(--accent),var(--accent2));color:#fff;padding:11px 18px;border-radius:12px;font:600 13px var(--font);cursor:pointer;transition:.18s;box-shadow:0 6px 22px -8px var(--accent)}
+.btn:hover{transform:translateY(-1px);box-shadow:0 10px 26px -8px var(--accent)}
+.btn.ghost{background:rgba(255,255,255,.07);box-shadow:none;border:1px solid rgba(255,255,255,.14);color:#dfe3ff}
+.btn.sm{padding:7px 12px;font-size:12px;border-radius:10px}
+.btn:disabled{opacity:.5;cursor:not-allowed;transform:none}
+
+.bar{height:8px;border-radius:99px;background:rgba(255,255,255,.09);overflow:hidden;margin:8px 0 4px}
+.bar i{display:block;height:100%;width:0;border-radius:99px;background:linear-gradient(90deg,var(--accent),var(--accent2));transition:width .6s ease}
+
+.field{margin:12px 0}
+.field label{display:block;font-size:11.5px;color:#aab3dd;margin-bottom:6px;text-transform:uppercase;letter-spacing:.6px}
+.input,select,.txarea{width:100%;background:rgba(0,0,0,.22);border:1px solid rgba(255,255,255,.12);color:#e7e9ff;padding:10px 12px;border-radius:11px;font:inherit;font-size:13px;outline:none;transition:.15s}
+.input:focus,select:focus,.txarea:focus{border-color:var(--accent2);box-shadow:0 0 0 3px rgba(0,210,255,.12)}
+.txarea{min-height:96px;resize:vertical}
+.row2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+
+.tg{--w:42px;--h:24px;display:inline-flex;align-items:center;gap:10px;cursor:pointer;user-select:none}
+.tg input{display:none}
+.tg .sw{width:var(--w);height:var(--h);border-radius:99px;background:rgba(255,255,255,.14);position:relative;transition:.2s;flex-shrink:0}
+.tg .sw::after{content:'';position:absolute;top:3px;left:3px;width:calc(var(--h) - 6px);height:calc(var(--h) - 6px);border-radius:50%;background:#fff;transition:.2s}
+.tg input:checked + .sw{background:linear-gradient(90deg,var(--accent),var(--accent2))}
+.tg input:checked + .sw::after{left:calc(var(--w) - var(--h) + 3px)}
+.tg span{font-size:13px}
+
+.range{display:flex;align-items:center;gap:10px}
+.range input[type=range]{flex:1;accent-color:var(--accent)}
+.range output{font-size:12px;color:#aab3dd;min-width:44px;text-align:right}
+
+.swatches{display:flex;gap:8px;flex-wrap:wrap;margin-top:6px}
+.sw{width:30px;height:30px;border-radius:9px;cursor:pointer;border:2px solid transparent;transition:.15s}
+.sw.on{border-color:#fff;transform:scale(1.12)}
+.bgpre{display:flex;gap:8px;margin-top:6px}
+.bgp{flex:1;height:38px;border-radius:10px;border:2px solid transparent;cursor:pointer;display:grid;place-items:center;font-size:11px;color:#ccc;background:rgba(255,255,255,.05);transition:.15s}
+.bgp.on{border-color:var(--accent2);color:#fff}
+
+.wigh{display:flex;align-items:center;gap:10px;padding:9px 0;border-bottom:1px solid rgba(255,255,255,.06)}
+.wigh:last-child{border-bottom:0}
+.wigh b{flex:1;font-size:13px;font-weight:500}
+.wigh .mv{background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.12);color:#dfe3ff;width:26px;height:26px;border-radius:8px;cursor:pointer}
+.wigh .mv:disabled{opacity:.3;cursor:default}
+
+/* settings slide-over */
+#ovl{position:fixed;inset:0;background:rgba(4,5,10,.55);backdrop-filter:blur(4px);opacity:0;pointer-events:none;transition:.25s;z-index:40}
+#ovl.show{opacity:1;pointer-events:auto}
+#panel{position:fixed;top:0;right:-440px;width:420px;height:100vh;background:#0b0d1a;border-left:1px solid rgba(255,255,255,.1);transition:right .3s ease;z-index:50;padding:22px;overflow-y:auto}
+#panel.open{right:0}
+#panel h2{font-size:16px;margin-bottom:4px}
+#panel .sec{margin-top:4px;padding:16px 0;border-top:1px solid rgba(255,255,255,.08)}
+#panel .sec>h4{font-size:12px;letter-spacing:1px;text-transform:uppercase;color:#8b93b8;margin-bottom:6px}
+#panel .pin{position:sticky;bottom:0;padding-top:14px;background:linear-gradient(transparent,#0b0d1a 40%);display:flex;gap:10px}
+#toasts{position:fixed;right:14px;bottom:14px;z-index:90;display:flex;flex-direction:column;gap:8px;pointer-events:none}
+.toast{pointer-events:auto;min-width:260px;max-width:380px;padding:11px 13px;border-radius:12px;font-size:12.5px;white-space:pre-wrap;background:#0f1326;border:1px solid rgba(255,255,255,.14);box-shadow:0 10px 30px rgba(0,0,0,.4);animation:toastIn .25s ease}
+.toast.ok{border-color:rgba(34,197,94,.4)} .toast.err{border-color:rgba(239,68,68,.4)} .toast.info{border-color:rgba(0,210,255,.35)}
+@keyframes toastIn{from{transform:translateY(8px);opacity:0}to{transform:none;opacity:1}}
+.out-msg{font-size:12.5px;border-radius:11px;padding:11px 13px;margin-top:12px;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1);white-space:pre-wrap}
+.out-msg.err{border-color:rgba(239,68,68,.4);color:#fca5a5}
+.out-msg.ok{border-color:rgba(34,197,94,.4);color:#86efac}
+.spin{display:inline-block;width:13px;height:13px;border:2px solid rgba(255,255,255,.3);border-top-color:#fff;border-radius:50%;animation:sp .7s linear infinite}
+#voiceWave i{display:block;width:3px;height:10px;border-radius:99px;background:var(--accent2);animation:wave 0.7s ease-in-out infinite}
+#voiceWave i:nth-child(2){animation-delay:0.12s;height:14px;background:var(--accent)}
+#voiceWave i:nth-child(3){animation-delay:0.24s}
+@keyframes wave{0%,100%{transform:scaleY(0.6)}50%{transform:scaleY(1.4)}}
+.bub.typing{opacity:0.85}
+.bub.typing::after{content:'▌';animation:blink 0.7s step-end infinite;margin-left:2px;color:var(--accent2)}
+@keyframes blink{0%,50%{opacity:1}51%,100%{opacity:0}}
+.card.live{animation:liveGlow 1.1s ease}
+@keyframes liveGlow{0%{box-shadow:0 10px 40px rgba(0,0,0,.35),0 0 0 1px rgba(255,255,255,.04),0 0 34px -12px var(--accent2)}50%{box-shadow:0 10px 40px rgba(0,0,0,.35),0 0 0 1px var(--accent2),0 0 28px var(--accent2)}100%{box-shadow:0 10px 40px rgba(0,0,0,.35)}}
+@keyframes sp{to{transform:rotate(360deg)}}
+
+/* agent / accounts */
+.assign{font-size:12px}
+.assign .tg{display:flex;align-items:center;gap:8px;margin:6px 0;font-size:12px}
+.feed{height:220px;overflow-y:auto;display:flex;flex-direction:column;gap:8px;padding:4px 2px}
+.feed .bub{max-width:88%;padding:9px 12px;border-radius:12px;font-size:12.5px;line-height:1.45;white-space:pre-wrap}
+.feed .bub.user{align-self:flex-end;background:var(--accent);color:#fff}
+.feed .bub.ag{align-self:flex-start;background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.1)}
+.logbox{max-height:230px;overflow-y:auto;font-size:12px}
+.logbox .lrow{border-bottom:1px solid rgba(255,255,255,.05);padding:7px 2px}
+/* token modal */
+#tokenOvl{position:fixed;inset:0;background:rgba(4,5,10,.6);backdrop-filter:blur(4px);opacity:0;pointer-events:none;transition:.25s;z-index:60}
+#tokenOvl.show{opacity:1;pointer-events:auto}
+#tokenPanel{position:fixed;top:50%;left:50%;transform:translate(-50%,-46%) scale(.97);width:min(430px,92vw);background:#0b0d1a;border:1px solid rgba(255,255,255,.12);border-radius:16px;padding:22px;opacity:0;pointer-events:none;transition:.25s;z-index:70}
+#tokenPanel.open{opacity:1;pointer-events:auto;transform:translate(-50%,-50%)}
+#tokenBody{max-height:60vh;overflow-y:auto;margin-top:10px}
+
+/* terminal (cmd/powershell style) */
+.terminal{grid-column:span 12;padding:0;overflow:hidden;display:flex;flex-direction:column;min-height:420px}
+.terminal .term-head{display:flex;align-items:center;gap:8px;padding:10px 14px;border-bottom:1px solid rgba(255,255,255,.08);background:rgba(0,0,0,.18)}
+.terminal .dot{width:12px;height:12px;border-radius:50%}
+.terminal .term-out{flex:1;overflow-y:auto;padding:14px;font:12.5px/1.5 'JetBrains Mono',ui-monospace,monospace;white-space:pre-wrap;background:#0b0e14;color:#d1e7ff;min-height:260px}
+.terminal .term-row{color:#8b93b8}
+.terminal .term-row b{color:#22c55e}
+.terminal .term-in{display:flex;align-items:center;gap:8px;padding:10px 14px;border-top:1px solid rgba(255,255,255,.08);background:rgba(0,0,0,.25)}
+.terminal .term-in span{color:#22c55e;font:12.5px 'JetBrains Mono',monospace}
+.terminal .term-in input{flex:1;background:transparent;border:0;outline:none;color:#e7e9ff;font:13px 'JetBrains Mono',monospace}
+.bulk-checks{display:flex;gap:10px;flex-wrap:wrap;margin:8px 0 10px}
+.bulk-checks label{display:flex;align-items:center;gap:6px;padding:6px 10px;border-radius:999px;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1);font-size:12.5px;cursor:pointer}
+.bulk-checks label.on{border-color:var(--accent2);background:rgba(0,210,255,.12)}
+@media(max-width:1100px){.card{grid-column:span 6}.card.wide{grid-column:span 12}.sidebar{width:72px}.logo b,.logo span,.nav button span,.side-foot{display:none}}
+/* --- mobile responsive: hamburger + stacked layout + touch targets --- */
+#menuBtn{display:none}
+.nbadge{display:inline-block;min-width:20px;text-align:center;font-size:11px;font-weight:700;background:#ef4444;color:#fff;border-radius:999px;padding:1px 6px;margin-left:6px}
+.cal-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:6px;margin-top:10px}
+.cal-cell{min-height:74px;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);border-radius:10px;padding:6px;font-size:11px;overflow:hidden}
+.cal-cell.today{border-color:var(--accent2)}
+.cal-cell b{display:block;font-size:11px;margin-bottom:4px}
+.plist,.ilist,.nlist{display:flex;flex-direction:column;gap:8px;margin-top:10px}
+.prow2,.irow,.nrow{background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.1);border-radius:12px;padding:10px 12px;font-size:12.5px}
+.prow2 b,.irow b{font-size:13px}
+@media(max-width:720px){
+ .card{grid-column:span 12}
+ .layout{flex-direction:column;padding:12px}
+ .sidebar{width:100%;position:sticky;top:0;z-index:30;height:auto;flex-direction:row;align-items:center;padding:10px 12px;gap:10px}
+ .logo{margin-bottom:0}
+ .nav{display:none;position:absolute;top:64px;left:12px;right:12px;z-index:40;background:#0b0d1a;border:1px solid rgba(255,255,255,.12);border-radius:14px;padding:10px;flex-direction:column}
+ .nav.open{display:flex}
+ .nav button{padding:14px;font-size:14px}
+ #menuBtn{display:inline-flex}
+ .topbar{flex-wrap:wrap;padding:12px}
+ .topbar h1{font-size:16px}
+ .row2{grid-template-columns:1fr}
+ .btn{min-height:44px}
+ .input,select,.txarea{font-size:16px}
+ .cal-grid{grid-template-columns:repeat(2,1fr)}
+ .cal-cell{min-height:90px}
+ .terminal{min-height:60vh}
+ #panel{width:100vw;right:-100vw}
+}
+</style>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
+</head>
+<body data-bg="aurora" data-density="comfortable" data-glow="true">
+<div id="bgfx"><div class="blob b1"></div><div class="blob b2"></div><div class="blob b3"></div></div>
+
+<div class="layout">
+  <aside class="sidebar glass">
+    <div class="logo">
+      <div class="god-eye" id="godEye" title="GodEye is watching">
+        <svg width="40" height="40" viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg" aria-label="GodEye logo">
+          <defs>
+            <linearGradient id="geye" x1="0" y1="0" x2="40" y2="40" gradientUnits="userSpaceOnUse">
+              <stop stop-color="var(--accent)"/><stop offset="1" stop-color="var(--accent2)"/>
+            </linearGradient>
+            <radialGradient id="irisGrad" cx="50%" cy="50%" r="50%">
+              <stop offset="0%" stop-color="#fff" stop-opacity="0.95"/>
+              <stop offset="22%" stop-color="var(--accent2)"/>
+              <stop offset="65%" stop-color="var(--accent)"/>
+              <stop offset="100%" stop-color="#0a0e2a"/>
+            </radialGradient>
+            <filter id="glowEye" x="-50%" y="-50%" width="200%" height="200%">
+              <feGaussianBlur stdDeviation="3" result="b"/><feComposite in="SourceGraphic" in2="b" operator="over"/>
+            </filter>
+          </defs>
+          <!-- outer eye -->
+          <path d="M5 20 C 10 9, 30 9, 35 20 C 30 31, 10 31, 5 20 Z" fill="rgba(255,255,255,0.06)" stroke="url(#geye)" stroke-width="1.6" />
+          <!-- iris -->
+          <circle id="eyeIris" cx="20" cy="20" r="9" fill="url(#irisGrad)" stroke="rgba(255,255,255,0.18)" stroke-width="0.8"/>
+          <!-- pupil -->
+          <circle id="eyePupil" cx="20" cy="20" r="4.2" fill="#070a1a" />
+          <!-- highlight -->
+          <circle cx="17.5" cy="17.2" r="1.8" fill="#fff" opacity="0.85"/>
+          <circle cx="17.5" cy="17.2" r="0.7" fill="#fff" opacity="0.95"/>
+          <!-- scan line -->
+          <ellipse id="eyeScan" cx="20" cy="20" rx="13" ry="1.2" fill="none" stroke="var(--accent2)" stroke-opacity="0.0" stroke-width="0.6"/>
+        </svg>
+      </div>
+      <div class="wt">
+        <b>GOD</b>
+        <p>Eye</p>
+        <span>NEURAL CONSOLE</span>
+      </div>
+    </div>
+    <nav class="nav" id="mainNav">
+      <button data-view="overview"><span class="ico">◧</span><span>Overview</span></button>
+      <button data-view="content"><span class="ico">✦</span><span>Content Studio</span></button>
+      <button data-view="projects"><span class="ico">▤</span><span>Projects</span></button>
+      <button data-view="calendar"><span class="ico">📅</span><span>Calendar</span></button>
+      <button data-view="inbox"><span class="ico">✉</span><span>Inbox</span><span class="nbadge" id="inboxBadge" style="display:none">0</span></button>
+      <button data-view="notifs"><span class="ico">🔔</span><span>Alerts</span><span class="nbadge" id="notifBadge" style="display:none">0</span></button>
+      <button data-view="platforms"><span class="ico">⇆</span><span>Accounts</span></button>
+      <button data-view="agent"><span class="ico">◎</span><span>Agent</span></button>
+      <button data-view="money"><span class="ico">$</span><span>Monetization</span></button>
+      <button data-view="terminal"><span class="ico">▣</span><span>Terminal</span></button>
+    </nav>
+    <div class="side-foot">
+      <p><span class="dot"></span><b>engine online</b></p>
+      <p id="sideModel">…</p>
+    </div>
+  </aside>
+
+  <main class="main">
+    <div class="topbar glass">
+      <button class="gearbtn" id="menuBtn" onclick="document.getElementById('mainNav').classList.toggle('open')" title="Menu">☰</button>
+      <div><h1>Overview</h1><div class="crumbs" id="crumbs">Agent Control Center</div></div>
+      <div class="sp">
+        <button class="chip" id="voiceBtn" onclick="toggleVoice()" title="Talk to GodEye — click to speak" style="cursor:pointer;gap:6px">
+          <span id="voiceDot" style="width:8px;height:8px;border-radius:50%;background:#555;display:inline-block;box-shadow:0 0 0 2px rgba(255,255,255,0.08)"></span>
+          <span id="voiceLabel">Voice: off</span>
+          <span id="voiceWave" style="display:none;gap:2px;align-items:center"><i></i><i></i><i></i></span>
+        </button>
+        <span class="chip" id="cpuChip"><span class="spin" style="display:none"></span><span>AI: <b id="aiChip">…</b></span></span>
+        <button class="gearbtn" onclick="openSettings()" title="Customize">⚙</button>
+      </div>
+    </div>
+
+    <div class="grid" id="view-overview"></div>
+    <div class="grid" id="view-content" style="display:none"></div>
+    <div class="grid" id="view-projects" style="display:none"></div>
+    <div class="grid" id="view-calendar" style="display:none"></div>
+    <div class="grid" id="view-inbox" style="display:none"></div>
+    <div class="grid" id="view-notifs" style="display:none"></div>
+    <div class="grid" id="view-platforms" style="display:none"></div>
+    <div class="grid" id="view-agent" style="display:none"></div>
+    <div class="grid" id="view-money" style="display:none"></div>
+    <div class="grid" id="view-terminal" style="display:none"></div>
+  </main>
+</div>
+<div id="toasts"></div>
+
+<div id="tokenOvl" onclick="closeTokenModal()"></div>
+<div id="tokenPanel">
+  <h2>Connect account</h2>
+  <p style="font-size:12px;color:#8b93b8;margin:4px 0 2px">Paste the credentials from this platform's developer portal.</p>
+  <div id="tokenBody"></div>
+  <div style="display:flex;gap:10px;margin-top:14px">
+    <button class="btn" id="tokenSave">Save & test</button>
+    <button class="btn ghost" onclick="closeTokenModal()">Cancel</button>
+  </div>
+</div>
+
+<div id="ovl" onclick="closeSettings()"></div>
+<aside id="panel">
+  <h2>Customize</h2>
+  <p style="font-size:12px;color:#8b93b8">Every change here is saved to the agent's config — no code edits.</p>
+
+  <div class="sec">
+    <h4>Theme</h4>
+    <div class="field"><label>Accent</label>
+      <div class="swatches" data-key="theme.accent">
+        <div class="sw on" style="background:#6c5ce7" data-v="#6c5ce7"></div>
+        <div class="sw" style="background:#00d2ff" data-v="#00d2ff"></div>
+        <div class="sw" style="background:#22c55e" data-v="#22c55e"></div>
+        <div class="sw" style="background:#f59e0b" data-v="#f59e0b"></div>
+        <div class="sw" style="background:#ef4444" data-v="#ef4444"></div>
+        <div class="sw" style="background:#ec4899" data-v="#ec4899"></div>
+      </div>
+    </div>
+    <div class="field"><label>Glass clarity</label>
+      <div class="bgpre" data-key="glass">
+        <div class="bgp" data-v="frosted" onclick="setGlass('frosted')">frosted</div>
+        <div class="bgp on" data-v="subtle" onclick="setGlass('subtle')">subtle</div>
+        <div class="bgp" data-v="crisp" onclick="setGlass('crisp')">crisp</div>
+        <div class="bgp" data-v="none" onclick="setGlass('none')">none</div>
+      </div>
+    </div>
+    <div class="row2">
+      <div class="field"><label>Glass blur</label>
+        <div class="range"><input type="range" id="setBlur" min="0" max="24" value="5"><output>5px</output></div></div>
+      <div class="field"><label>Panel opacity</label>
+        <div class="range"><input type="range" id="setOp" min="0.4" max="1" step="0.02" value="0.9"><output>0.90</output></div></div>
+    </div>
+    <div class="row2">
+      <div class="field"><label>Corner radius</label>
+        <div class="range"><input type="range" id="setRad" min="6" max="32" value="18"><output>18px</output></div></div>
+      <div class="field"><label>Border glow</label>
+        <div class="range"><input type="range" id="setBorder" min="0.05" max="0.6" step="0.05" value="0.25"><output>0.25</output></div></div>
+    </div>
+    <div class="field"><label>Background</label>
+      <div class="bgpre" data-key="theme.bg">
+        <div class="bgp on" data-v="aurora">aurora</div>
+        <div class="bgp" data-v="grid">grid</div>
+        <div class="bgp" data-v="depth">depth</div>
+        <div class="bgp" data-v="candy">candy</div>
+        <div class="bgp" data-v="mono">mono</div>
+      </div>
+    </div>
+    <div class="field"><label>Density</label>
+      <div class="bgpre" data-key="theme.density">
+        <div class="bgp" data-v="compact">compact</div>
+        <div class="bgp on" data-v="comfortable">comfortable</div>
+        <div class="bgp" data-v="spacious">spacious</div>
+      </div>
+    </div>
+    <label class="tg"><input type="checkbox" id="setGlow" checked><span class="sw"></span><span>Neon glow</span></label>
+    <div class="field"><label>Font</label>
+      <select class="input" id="setFont">
+        <option>Inter</option><option>System</option><option>Mono</option>
+      </select></div>
+  </div>
+
+  <div class="sec">
+    <h4>Widgets</h4>
+    <div id="widgetList"></div>
+  </div>
+
+  <div class="sec">
+    <h4>AI Engine</h4>
+    <div class="field"><label>Provider</label>
+      <select class="input" id="aiProvider" onchange="loadModels(false)">
+        <option value="auto">Auto — try all keys, fail over on error</option>
+        <option value="nvidia">NVIDIA (integrate.api.nvidia.com)</option>
+        <option value="openrouter">OpenRouter (openrouter.ai — free models)</option>
+        <option value="openai">OpenAI</option>
+        <option value="anthropic">Anthropic</option>
+      </select></div>
+    <div class="field"><label>Reasoning level (thinking effort)</label>
+      <select class="input" id="aiReasoning">
+        <option value="off">off — fastest, cheapest</option>
+        <option value="low">low — quick reasoning</option>
+        <option value="medium">medium — balanced</option>
+        <option value="high">high — deepest (slower, more tokens)</option>
+      </select>
+      <div class="sub" style="margin-top:4px">Sent as effort/budget to OpenRouter, NVIDIA reasoning models, OpenAI o-series & Anthropic thinking.</div></div>
+    <div class="field"><label>API keys (saved to .env — switch providers without touching code)</label>
+      <div class="row2">
+        <input class="input" id="keyNvidia" type="password" placeholder="NVIDIA_API_KEY" autocomplete="off">
+        <input class="input" id="keyOpenrouter" type="password" placeholder="OPENROUTER_API_KEY" autocomplete="off">
+      </div>
+      <div class="row2" style="margin-top:8px">
+        <input class="input" id="keyOpenai" type="password" placeholder="OPENAI_API_KEY" autocomplete="off">
+        <input class="input" id="keyAnthropic" type="password" placeholder="ANTHROPIC_API_KEY" autocomplete="off">
+      </div>
+      <div style="display:flex;gap:8px;margin-top:8px;align-items:center;flex-wrap:wrap">
+        <button class="btn sm" onclick="saveKeys()">Save keys</button>
+        <span class="sub" id="keysHint">checking…</span>
+      </div></div>
+    <div class="field"><label>Model</label>
+      <select class="input" id="aiModel"></select>
+      <div style="margin-top:6px"><button class="btn sm ghost" onclick="loadModels(false)">⟳ Refresh model list</button></div></div>
+    <div class="field"><label>Fallback models (comma-separated, tried in order)</label>
+      <input class="input" id="aiFallback" placeholder="e.g. meta/llama-3.3-70b-instruct, deepseek-ai/deepseek-v3">
+      <div style="margin-top:6px;display:flex;gap:8px;align-items:center">
+        <button class="btn sm ghost" onclick="testModels()">⚡ Test models</button>
+        <span class="sub" style="font-size:11px">as many NVIDIA models move 404s fast, pick ones that pass</span>
+      </div>
+      <div id="aiTest" style="margin-top:8px;display:flex;flex-direction:column;gap:5px"></div></div>
+    <div class="row2">
+      <div class="field"><label>Temperature</label>
+        <div class="range"><input type="range" id="aiTemp" min="0" max="1.5" step="0.05" value="0.8"><output>0.8</output></div></div>
+      <div class="field"><label>Max tokens</label>
+        <div class="range"><input type="range" id="aiTokens" min="256" max="4000" step="64" value="1000"><output>1000</output></div></div>
+    </div>
+  </div>
+
+  <div class="sec">
+    <h4>Agent</h4>
+    <div style="padding:12px;border:1px solid rgba(255,255,255,.12);border-radius:12px;background:rgba(255,255,255,.04);margin-bottom:12px">
+      <label class="tg" style="--w:52px;--h:28px"><input type="checkbox" id="agEnabled" onchange="toggleAutonomous(this.checked)"><span class="sw"></span><span style="font-weight:700">Autonomous — master switch</span></label>
+      <div class="sub" id="agEnabledHint" style="margin-top:6px">When off, the agent never runs in background and Start/Cycles are blocked. Turn on to allow autonomous.</div>
+    </div>
+    <div class="field"><label>Default niche</label><input class="input" id="agNiche" value="AI & Technology"></div>
+    <div class="field"><label>Focus mode — one account gets ALL cycles</label>
+      <select class="input" id="agFocus">
+        <option value="">off</option><option value="youtube">YouTube</option>
+        <option value="tiktok">TikTok</option><option value="x">X</option><option value="instagram">Instagram</option>
+      </select></div>
+    <div class="field"><label>Narration voice (off = text-only drafts)</label>
+      <select class="input" id="agVoice">
+        <option value="">off</option><option value="en-US-JennyNeural">Jenny (US)</option>
+        <option value="en-US-GuyNeural">Guy (US)</option><option value="en-GB-SoniaNeural">Sonia (UK)</option>
+        <option value="en-US-AriaNeural">Aria (US)</option><option value="en-US-ChristopherNeural">Christopher (US)</option>
+      </select></div>
+    <div class="row2">
+      <div class="field"><label>Daily post limit</label>
+        <div class="range"><input type="range" id="agLimit" min="1" max="50" value="10"><output>10</output></div></div>
+      <div class="field"><label>Analyze every (h)</label>
+        <div class="range"><input type="range" id="agInterval" min="1" max="24" value="6"><output>6</output></div></div>
+    </div>
+    <label class="tg"><input type="checkbox" id="agAuto"><span class="sw"></span><span>Autonomous posting</span></label><br><br>
+    <label class="tg"><input type="checkbox" id="agHuman" checked><span class="sw"></span><span>Human approval before posting</span></label><br><br>
+    <label class="tg"><input type="checkbox" id="agMedia" checked><span class="sw"></span><span>Generate media for video platforms</span></label>
+  </div>
+
+  <div class="sec">
+    <h4>Platforms</h4>
+    <div id="platList"></div>
+  </div>
+
+  <div class="pin">
+    <button class="btn" onclick="saveSettings()">Save Settings</button>
+    <button class="btn ghost" onclick="closeSettings()">Close</button>
+  </div>
+</aside>
+
+<script>
+let SET = null;
+const $ = id => document.getElementById(id);
+const esc = s => (s==null?'':String(s)).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+
+function applyTheme(s){
+  const t = s.theme||{};
+  document.body.dataset.bg = t.bg||'aurora';
+  document.body.dataset.density = t.density||'comfortable';
+  document.body.dataset.glow = String(t.glow!==false);
+  const r = document.documentElement.style;
+  r.setProperty('--accent', t.accent||'#6c5ce7');
+  r.setProperty('--accent2', t.accent2||'#00d2ff');
+  r.setProperty('--blur', t.glassBlur||'14px');
+  r.setProperty('--glass-op', t.glassOpacity||.55);
+  r.setProperty('--radius', t.radius||'18px');
+  r.setProperty('--border-op', t.borderOpacity||.25);
+  if((t.font||'Inter').toLowerCase()==='system') r.setProperty('--font',`system-ui,sans-serif`);
+  else if((t.font||'').toLowerCase()==='mono') r.setProperty('--font',`'JetBrains Mono',ui-monospace,monospace`);
+  else r.setProperty('--font',`'Inter',system-ui,sans-serif`);
+}
+
+function card(h3, inner, wide){
+  return `<div class="card glass ${wide?'wide':''}"><h3><span class="h-ico">${h3[0]}</span>${h3[1]}</h3>${inner}</div>`;
+}
+
+/* ---------------- views ---------------- */
+function renderOverview(){
+  const w = SET.widgets, v = w.visible; let html='';
+  if(v.status) html+=card(['●','SYSTEM STATUS'],`
+    <div class="value" id="sysVal">…</div>
+    <div class="sub" id="sysSub">loading agent state</div>
+    <div class="bar"><i id="sysBar" style="width:0%"></i></div>
+    <div style="display:flex;gap:8px;margin-top:12px">
+      <button class="btn sm ghost" onclick="runAnalyze()">◈ Analyze niches</button>
+      <button class="btn sm ghost" onclick="refreshAll()">⟳ Refresh</button>
+    </div>`);
+  if(v.ai) html+=card(['✦','AI ENGINE'],`
+    <div class="value" id="aiPc">…</div>
+    <div class="sub" id="aiModelSub">provider</div>
+    <div class="bar"><i id="aiBar" style="width:0%"></i></div>
+    <div style="display:flex;gap:8px;margin-top:12px">
+      <button class="btn sm ghost" onclick="openStudio()">✎ Generate content</button>
+    </div>`);
+  if(v.platforms) html+=card(['⇆','PLATFORM CONNECTIONS'],`<div id="platCon" style="margin-top:4px">…</div>`);
+  if(v.monetization) html+=card(['$','MONETIZATION PULSE'],`<div id="monPulse" style="margin-top:4px">…</div>`);
+  if(v.tax) html+=card(['◳','TAX & INCOME'],`<div id="taxBox" style="margin-top:4px">…</div>`);
+  if(v.activity) html+=card(['↻','ACTIVITY'],`<div id="actBox" style="margin-top:4px">…</div>`);
+  if(v.posts) html+=card(['⤴','PUBLISH QUEUE'],`<div id="pubBox" style="margin-top:4px">…</div>`);
+  $('view-overview').innerHTML = html;
+  $('view-overview').style.display='';
+}
+function renderContent(){
+  const defNiche=(SET.agent&&SET.agent.defaultNiche)||'AI & Technology';
+  $('view-content').innerHTML = card(['✦','CONTENT STUDIO'],`
+    <div class="row2">
+      <div class="field"><label>Niche</label><input class="input" id="stNiche" placeholder="AI & Technology" value="${esc(defNiche)}"></div>
+      <div class="field"><label>Platform</label><select class="input" id="stPlat">
+        <option value="twitter">Twitter / X</option><option value="instagram">Instagram</option>
+        <option value="tiktok">TikTok</option><option value="youtube">YouTube</option></select></div>
+    </div>
+    <div class="field"><label>Tone</label><select class="input" id="stTone">
+      <option value="professional">professional</option><option value="casual">casual</option>
+      <option value="funny">funny</option><option value="motivational">motivational</option><option value="educational">educational</option></select></div>
+    <button class="btn" onclick="doGenerate()">✦ Generate with AI</button>
+    <div id="genOut" class="out-msg" style="white-space:pre-wrap;display:none"></div>
+    <div id="genMeta" style="display:none;margin-top:8px;align-items:center;gap:8px;flex-wrap:wrap">
+      <span class="sub" id="genCount"></span><span class="sub" id="genTags"></span>
+      <button class="btn sm ghost" onclick="copyGen()">⧉ Copy</button>
+    </div>
+    <div style="display:flex;gap:8px;align-items:center;margin-top:12px">
+      <button class="btn sm ghost" onclick="renderPreview()" id="gbRender" disabled>▶ Render media (card + narrated video)</button>
+      <span class="sub" id="gbHint"></span>
+    </div>
+    <div class="sub" style="margin-top:6px">Auto-captions: narration script doubles as on-screen text cards. Burned-in subtitles coming next — cards carry the message for now.</div>
+    <div id="mediaPrev" style="margin-top:12px;display:none"></div>
+    <div style="margin-top:16px;padding:12px;border:1px solid rgba(255,255,255,.08);border-radius:12px;background:rgba(255,255,255,.03)">
+      <label style="font-size:11.5px;letter-spacing:.6px;color:#aab3dd;text-transform:uppercase;display:block;margin-bottom:6px">Upload Video (YouTube / TikTok — real file)</label>
+      <div class="sub" style="margin-bottom:8px">Uploading a video replaces auto-generated media for YouTube/TikTok. X/Instagram use text only unless you also pick a thumbnail below.</div>
+      <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">
+        <input type="file" id="upVideo" accept=".mp4,.mov,.m4v,.webm,.avi,.mkv,.jpg,.jpeg,.png,.webp" style="font-size:12px;color:#dfe3ff">
+        <button class="btn sm" onclick="uploadMedia()">⬆ Upload</button>
+        <span class="sub" id="upStatus"></span>
+      </div>
+      <div id="upPreview" style="margin-top:10px;display:none"></div>
+      <div class="sub" id="upHint" style="margin-top:6px"></div>
+      <div style="display:flex;gap:8px;margin-top:10px">
+        <button class="btn sm ghost" onclick="loadMediaLibrary()">⟳ Media Library</button>
+        <span class="sub" id="libHint"></span>
+      </div>
+      <div id="mediaLibrary" style="margin-top:10px;display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:8px"></div>
+    </div>
+  `)
+  + card(['⤴','1-CLICK — POST TO ALL CHOSEN ACCOUNTS'],`
+    <div class="sub" style="margin-bottom:8px">Pick where this post goes. No code needed — generates per-platform if you leave text empty.</div>
+    <div class="bulk-checks" id="bulkChecks">
+      <label><input type="checkbox" value="youtube" checked> YouTube</label>
+      <label><input type="checkbox" value="tiktok" checked> TikTok</label>
+      <label><input type="checkbox" value="x"> X</label>
+      <label><input type="checkbox" value="instagram"> Instagram</label>
+    </div>
+    <div class="field"><label>Custom text (optional — leave empty to AI-generate per platform)</label><textarea class="txarea" id="bulkText" placeholder="Type your message here, or leave empty to use the niche above…"></textarea></div>
+    <div class="row2">
+      <label class="tg"><input type="checkbox" id="bulkDraft"><span class="sw"></span><span>Draft only (don't publish yet)</span></label>
+      <div class="sub" id="bulkHint">Connected accounts will be used — check Accounts first.</div>
+    </div>
+     <div style="display:flex;gap:10px;margin-top:12px;flex-wrap:wrap">
+      <button class="btn" onclick="bulkPost()">⤴ Post to Selected — 1 Click</button>
+      <button class="btn ghost" onclick="bulkPost(true)">✎ Generate & Draft Only</button>
+      <button class="btn ghost" onclick="scheduleBulk()">◷ Schedule…</button>
+    </div>
+    <div id="bulkOut" class="out-msg" style="display:none"></div>
+    <div id="scheduleBox" style="display:none;margin-top:10px;padding:10px;border:1px dashed rgba(255,255,255,.14);border-radius:10px">
+      <div class="field"><label>Schedule time (local)</label><input type="datetime-local" class="input" id="schedTime"></div>
+      <div style="display:flex;gap:8px"><button class="btn sm" onclick="doSchedule()">◷ Schedule Selected</button><button class="btn sm ghost" onclick="$('scheduleBox').style.display='none'">Cancel</button></div>
+      <div class="sub" id="schedOut" style="margin-top:6px"></div>
+    </div>
+    <div id="scheduleQueue" style="margin-top:10px"></div>
+  `, true)
+  + card(['▤','CONTENT LIBRARY — agent uses these first'],`
+    <div class="sub" style="margin-bottom:8px">Create text or upload a script file — the agent's auto-cycle consumes <b>ready</b> items before generating new AI content. Edit, AI-rewrite, duplicate, or stage to drafts.</div>
+    <div class="field"><label>Title (optional)</label><input class="input" id="libTitle" placeholder="e.g. Morning motivation #12"></div>
+    <div class="field"><label>Text / script</label><textarea class="txarea" id="libText" placeholder="Write or paste content here…"></textarea></div>
+    <div class="row2">
+      <div class="field"><label>Niche</label><input class="input" id="libNiche" placeholder="AI & Technology"></div>
+      <div class="field"><label>Tone</label><select class="input" id="libTone">
+        <option value="professional">professional</option><option value="casual">casual</option>
+        <option value="funny">funny</option><option value="motivational">motivational</option><option value="educational">educational</option></select></div>
+    </div>
+    <div class="field"><label>Platforms (blank = any)</label><input class="input" id="libPlats" placeholder="e.g. tiktok,youtube"></div>
+    <div style="display:flex;gap:8px;flex-wrap:wrap">
+      <button class="btn sm" onclick="libCreate()">＋ Save to library</button>
+      <button class="btn sm ghost" onclick="libCreateFromGen()">⤓ Save generated ↑</button>
+      <input type="file" id="libFile" accept=".txt,.md,.srt,.vtt,.mp4,.mov,.m4v,.webm,.jpg,.jpeg,.png,.webp" style="font-size:12px;color:#dfe3ff">
+      <button class="btn sm ghost" onclick="libUpload()">⬆ Upload file</button>
+      <button class="btn sm ghost" onclick="loadLibrary()">⟳ Refresh</button>
+      <span class="sub" id="libStatus"></span>
+    </div>
+    <div id="libList" style="margin-top:10px;display:flex;flex-direction:column;gap:8px"></div>
+    <div id="libEditor" style="display:none;margin-top:10px;padding:12px;border:1px solid rgba(255,255,255,.14);border-radius:12px;background:rgba(0,0,0,.2)">
+      <div class="field"><label>Editing — <span id="libEditId"></span></label>
+        <textarea class="txarea" id="libEditText" style="min-height:120px"></textarea></div>
+      <div style="display:flex;gap:6px;flex-wrap:wrap">
+        <button class="btn sm" onclick="libSaveEdit()">💾 Save</button>
+        <button class="btn sm ghost" onclick="libAiEdit('rewrite')">✦ Rewrite</button>
+        <button class="btn sm ghost" onclick="libAiEdit('expand')">＋ Expand</button>
+        <button class="btn sm ghost" onclick="libAiEdit('shorten')">－ Shorten</button>
+        <button class="btn sm ghost" onclick="libAiEdit('hashtags')"># Hashtags</button>
+        <button class="btn sm ghost" onclick="libAiEdit('tone')">🎭 Tone</button>
+        <button class="btn sm ghost" onclick="$('libEditor').style.display='none'">Close</button>
+      </div>
+      <div class="sub" id="libEditOut" style="margin-top:6px"></div>
+    </div>
+  `, true)
+  + card(['🛠','MEDIA EDITING — image & video'],`
+    <div class="sub" style="margin-bottom:8px">Pick a file from the Media Library above (click <b>Use</b>), or type a filename in <i>data/media/</i>. Edits save as a <b>new file</b>.</div>
+    <div class="field"><label>File (in data/media)</label><input class="input" id="edFile" placeholder="e.g. ab12cd34_clip.mp4"></div>
+    <div class="row2">
+      <div class="field"><label>Image operation</label><select class="input" id="edImgOp">
+        <option value="resize">resize</option><option value="crop">crop</option><option value="grayscale">grayscale</option>
+        <option value="rotate">rotate</option><option value="flip">flip</option><option value="text">text overlay</option></select></div>
+      <div class="field"><label>Params (JSON)</label><input class="input" id="edImgParams" placeholder='{"width":1080,"height":1920} or {"text":"HELLO"}'></div>
+    </div>
+    <div style="display:flex;gap:8px;flex-wrap:wrap">
+      <button class="btn sm" onclick="mediaEdit()">🖼 Apply image edit</button>
+    </div>
+    <div class="row2" style="margin-top:10px">
+      <div class="field"><label>Video trim — start (s)</label><input class="input" id="edStart" type="number" value="0" min="0" step="0.5"></div>
+      <div class="field"><label>End (s) or duration</label><input class="input" id="edEnd" type="number" placeholder="e.g. 15"></div>
+    </div>
+    <div style="display:flex;gap:8px;flex-wrap:wrap">
+      <button class="btn sm" onclick="mediaTrim()">✂ Trim video</button>
+      <button class="btn sm ghost" onclick="mediaThumb()">🖼 Thumbnail @1s</button>
+      <span class="sub" id="edOut"></span>
+    </div>
+    <div id="edPrev" style="margin-top:10px;display:none"></div>
+  `, true);
+  $('view-content').style.display='';
+  // toggle pill style
+  setTimeout(()=>{
+    document.querySelectorAll('#bulkChecks label input').forEach(cb=>{
+      const lab=cb.parentElement;
+      const upd=()=> lab.classList.toggle('on', cb.checked);
+      cb.addEventListener('change', upd); upd();
+    });
+    try{ loadLibrary(); loadMediaLibrary(); loadScheduleQueue(); }catch(e){}
+  },50);
+}
+let UPLOADED_VIDEO=null, UPLOADED_IMAGE=null;
+async function uploadMedia(){
+  const inp=$('upVideo'); const status=$('upStatus'); const prev=$('upPreview'); const hint=$('upHint');
+  if(!inp || !inp.files || !inp.files[0]){ status.textContent='Pick a file first.'; return; }
+  const file=inp.files[0];
+  const fd=new FormData(); fd.append('file', file);
+  status.textContent='⏳ uploading '+file.name+' ('+Math.round(file.size/1024)+' KB)…';
+  prev.style.display='none'; prev.innerHTML=''; hint.textContent='';
+  try{
+    const r=await fetch('/api/media/upload',{method:'POST',body:fd});
+    const j=await r.json();
+    if(!j.ok){ status.textContent='✕ '+j.error; status.style.color='#f87171'; return; }
+    const m=j.data.media||{};
+    status.textContent='✓ uploaded '+m.filename+' ('+Math.round(m.size/1024)+' KB)'; status.style.color='#22c55e';
+    if(m.video){
+      UPLOADED_VIDEO=m.video; UPLOADED_IMAGE=null;
+      prev.style.display='block';
+      prev.innerHTML=`<video controls style="width:100%;max-height:320px;border-radius:10px;background:#000" src="${esc(m.preview_url)}"></video><div class="sub">Will be used for YouTube/TikTok 1-Click. Text.caption still from your niche/text.</div>`;
+      hint.textContent='✓ Video ready — now use “Post to Selected — 1 Click”. YouTube/TikTok will upload this file.';
+    } else if(m.image){
+      UPLOADED_IMAGE=m.image; // keep video too if set? prefer both
+      prev.style.display='block';
+      prev.innerHTML=`<img style="width:100%;max-height:320px;object-fit:cover;border-radius:10px" src="${esc(m.preview_url)}"><div class="sub">Image ready — Instagram will use this. Video still: ${UPLOADED_VIDEO?'yes':'no'}</div>`;
+      hint.textContent='✓ Image ready.';
+    }
+  }catch(e){ status.textContent='✕ network error'; }
+  loadMediaLibrary();
+}
+async function loadMediaLibrary(){
+  const lib=$('mediaLibrary'), hint=$('libHint'); if(!lib) return;
+  lib.innerHTML='<span class="sub">loading…</span>';
+  try{
+    const j=await api('/api/media/list');
+    if(!j.ok){ hint.textContent=j.error; return; }
+    const items=j.data.media||[];
+    hint.textContent=items.length? items.length+' files — click Use to attach to next 1-Click' : 'no media yet — upload above';
+    lib.innerHTML=items.map(m=>`
+      <div style="border:1px solid rgba(255,255,255,.1);border-radius:10px;overflow:hidden;background:rgba(0,0,0,.18)">
+        ${m.is_video?`<video src="${esc(m.preview_url)}" style="width:100%;height:90px;object-fit:cover;background:#000" muted></video>`:`<img src="${esc(m.preview_url)}" style="width:100%;height:90px;object-fit:cover">`}
+        <div style="padding:6px">
+          <div style="font-size:11px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis" title="${esc(m.filename)}">${esc(m.filename)}</div>
+          <div class="sub" style="font-size:10px">${m.size_kb} KB</div>
+          <div style="display:flex;gap:4px;margin-top:4px">
+            <button class="btn sm ghost" style="padding:4px 6px;font-size:10px" onclick="useMedia('${esc(m.filename)}','${m.is_video?'video':'image'}','${esc(m.preview_url)}')">Use</button>
+            <button class="btn sm ghost" style="padding:4px 6px;font-size:10px" onclick="deleteMedia('${esc(m.filename)}')">✕</button>
+          </div>
+        </div>
+      </div>`).join('')||'<span class="sub">empty</span>';
+  }catch(e){ hint.textContent='load failed'; }
+}
+function useMedia(filename, kind, url){
+  const path='data/media/'+filename;
+  if(kind==='video'){ UPLOADED_VIDEO=path; $('upHint').textContent='✓ Using video: '+filename; $('upPreview').style.display='block'; $('upPreview').innerHTML=`<video controls style="width:100%;max-height:320px;border-radius:10px;background:#000" src="${esc(url)}"></video>`; showToast('Video attached to next bulk post: '+filename); }
+  else { UPLOADED_IMAGE=path; $('upHint').textContent='✓ Using image: '+filename; showToast('Image attached: '+filename); }
+}
+async function deleteMedia(filename){
+  if(!confirm('Delete '+filename+'?')) return;
+  const j=await api('/api/media/delete/'+encodeURIComponent(filename),{method:'POST'});
+  if(!j.ok) alert(j.error); else loadMediaLibrary();
+}
+/* ---- Content Library (Studio) ---- */
+async function loadLibrary(){
+  const box=$('libList'), st=$('libStatus'); if(!box) return;
+  box.innerHTML='<span class="sub">loading…</span>';
+  if($('edFile') && !($('edFile').value||'').trim() && (UPLOADED_VIDEO||UPLOADED_IMAGE)){
+    const p=(UPLOADED_VIDEO||UPLOADED_IMAGE||'').split('/').pop();
+    if(p) $('edFile').value='data/media/'+p;
+  }
+  try{
+    const j=await api('/api/library'); if(!j.ok){ st.textContent=j.error; return; }
+    const items=j.data.items||[];
+    st.textContent=items.length? items.length+' items — agent consumes ready ones first' : 'empty — save your first item above';
+    box.innerHTML=items.map(it=>`
+      <div class="prow2"><b>${esc(it.title||'(untitled)')}</b>
+        <div class="sub">${esc((it.text||'').slice(0,140))}${(it.text||'').length>140?'…':''}</div>
+        <div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:6px;align-items:center">
+          <span class="plugin ${it.status==='ready'?'on':'wait'}">${esc(it.status||'ready')}</span>
+          <span class="sub">${esc((it.platforms||[]).join(',')||it.platform||'any')} · ×${it.use_count||0}</span>
+          <button class="btn sm ghost" style="padding:4px 8px;font-size:11px" onclick="libEdit('${it.id}')">✎ Edit</button>
+          <button class="btn sm ghost" style="padding:4px 8px;font-size:11px" onclick="libDup('${it.id}')">⧉ Dup</button>
+          <button class="btn sm ghost" style="padding:4px 8px;font-size:11px" onclick="libStage('${it.id}')">⤴ To drafts</button>
+          <button class="btn sm ghost" style="padding:4px 8px;font-size:11px" onclick="libDel('${it.id}')">✕</button>
+        </div></div>`).join('')||'<span class="sub">empty</span>';
+  }catch(e){ st.textContent='load failed'; }
+}
+async function libCreate(){
+  const st=$('libStatus');
+  const plats=($('libPlats')?.value||'').split(',').map(s=>s.trim().toLowerCase()).filter(Boolean);
+  const media={}; if(UPLOADED_VIDEO) media.video=UPLOADED_VIDEO; if(UPLOADED_IMAGE) media.image=UPLOADED_IMAGE;
+  const j=await api('/api/library',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({
+    title:$('libTitle')?.value||'', text:$('libText')?.value||'', niche:$('libNiche')?.value||'',
+    tone:$('libTone')?.value||'professional', platforms:plats, media})});
+  if(!j.ok){ st.textContent='✕ '+j.error; return; }
+  st.textContent='✓ saved — agent will use it on next cycle'; $('libText').value='';
+  loadLibrary();
+}
+async function libCreateFromGen(){
+  const t=$('genOut'); const txt=t? t.textContent.replace(/\[generated by.*\]/s,'').trim() : '';
+  if(!txt){ $('libStatus').textContent='Generate content first, then save.'; return; }
+  if($('libText')) $('libText').value=txt.slice(0,4000);
+  libCreate();
+}
+async function libUpload(){
+  const inp=$('libFile'), st=$('libStatus');
+  if(!inp?.files?.[0]){ st.textContent='Pick a file first.'; return; }
+  const fd=new FormData(); fd.append('file', inp.files[0]);
+  fd.append('title', $('libTitle')?.value||inp.files[0].name);
+  fd.append('niche', $('libNiche')?.value||''); fd.append('tone', $('libTone')?.value||'professional');
+  fd.append('platforms', $('libPlats')?.value||'');
+  st.textContent='⏳ uploading…';
+  const r=await fetch('/api/library',{method:'POST',body:fd}); const j=await r.json();
+  st.textContent=j.ok?'✓ uploaded to library':'✕ '+j.error;
+  if(j.ok) loadLibrary();
+}
+let LIB_CACHE=[];
+async function libEdit(id){
+  try{ const j=await api('/api/library'); LIB_CACHE=j.data.items||[]; }catch(e){}
+  const it=LIB_CACHE.find(x=>x.id===id); if(!it) return;
+  $('libEditor').style.display='block'; $('libEditId').textContent=id;
+  $('libEditor').dataset.id=id; $('libEditText').value=it.text||'';
+  $('libEditOut').textContent=''; $('libEditor').scrollIntoView({behavior:'smooth',block:'nearest'});
+}
+async function libSaveEdit(){
+  const id=$('libEditor').dataset.id; const out=$('libEditOut');
+  const j=await api('/api/library/'+id,{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify({text:$('libEditText').value})});
+  out.textContent=j.ok?'✓ saved':'✕ '+j.error; if(j.ok) loadLibrary();
+}
+async function libAiEdit(mode){
+  const id=$('libEditor').dataset.id; const out=$('libEditOut');
+  out.textContent='⏳ AI '+mode+'…';
+  // save current textbox first so AI edits latest
+  await api('/api/library/'+id,{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify({text:$('libEditText').value})});
+  const tone=$('libTone')?.value||'casual';
+  const j=await api('/api/library/'+id+'/ai-edit',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({mode,tone})});
+  if(!j.ok){ out.textContent='✕ '+j.error; return; }
+  $('libEditText').value=j.data.item.text||''; out.textContent='✓ AI '+mode+' applied';
+  loadLibrary();
+}
+async function libDup(id){ await api('/api/library/'+id+'/duplicate',{method:'POST'}); loadLibrary(); }
+async function libDel(id){ if(!confirm('Delete library item?')) return; await api('/api/library/'+id,{method:'DELETE'}); loadLibrary(); }
+async function libStage(id){
+  const plats=($('libPlats')?.value||'').split(',').map(s=>s.trim().toLowerCase()).filter(Boolean);
+  const j=await api('/api/library/'+id+'/use',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({platforms:plats.length?plats:undefined})});
+  showToast(j.ok? '✓ staged to drafts: '+(j.data.staged||[]).join(', ') : '✕ '+(j.error||'failed'), j.ok?'ok':'err');
+}
+/* ---- Media editing ---- */
+async function mediaEdit(){
+  const out=$('edOut'), prev=$('edPrev');
+  let params={}; try{ params=JSON.parse($('edImgParams').value||'{}'); }catch(e){ out.textContent='Params must be JSON'; return; }
+  out.textContent='⏳ editing…';
+  const j=await api('/api/media/edit',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({file:$('edFile').value,operation:$('edImgOp').value,...params})});
+  if(!j.ok){ out.textContent='✕ '+j.error; return; }
+  out.textContent='✓ '+j.data.media.filename;
+  prev.style.display='block'; prev.innerHTML=`<img style="width:100%;max-height:300px;object-fit:cover;border-radius:10px" src="${j.data.media.preview_url}">`;
+  loadMediaLibrary();
+}
+async function mediaTrim(){
+  const out=$('edOut'), prev=$('edPrev'); out.textContent='⏳ trimming…';
+  const j=await api('/api/media/trim',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({file:$('edFile').value,start:parseFloat($('edStart').value||0),end:parseFloat($('edEnd').value||0)||undefined})});
+  if(!j.ok){ out.textContent='✕ '+j.error; return; }
+  out.textContent=`✓ trimmed ${j.data.media.duration}s → ${j.data.media.filename}`;
+  prev.style.display='block'; prev.innerHTML=`<video controls style="width:100%;max-height:300px;border-radius:10px;background:#000" src="${j.data.media.preview_url}"></video>`;
+  loadMediaLibrary();
+}
+async function mediaThumb(){
+  const out=$('edOut'), prev=$('edPrev'); out.textContent='⏳ extracting…';
+  const j=await api('/api/media/thumbnail',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({file:$('edFile').value,at:1.0})});
+  if(!j.ok){ out.textContent='✕ '+j.error; return; }
+  out.textContent='✓ '+j.data.media.filename;
+  prev.style.display='block'; prev.innerHTML=`<img style="width:100%;max-height:300px;object-fit:cover;border-radius:10px" src="${j.data.media.preview_url}">`;
+  loadMediaLibrary();
+}
+function scheduleBulk(){ $('scheduleBox').style.display = $('scheduleBox').style.display==='none'?'block':'none'; loadScheduleQueue(); const inp=$('schedTime'); if(inp && !inp.value){ const d=new Date(Date.now()+3600*1000); d.setMinutes(0); inp.value=d.toISOString().slice(0,16); } }
+async function doSchedule(){
+  const niche=$('stNiche')?.value || SET.agent.defaultNiche || 'AI & Technology';
+  const tone=$('stTone')?.value || 'professional';
+  const text=$('bulkText')?.value?.trim() || '';
+  const plats=[...document.querySelectorAll('#bulkChecks input:checked')].map(i=>i.value);
+  const when=$('schedTime')?.value;
+  const out=$('schedOut'); if(!when){ out.textContent='Pick a time'; return; }
+  if(!plats.length){ out.textContent='Pick at least one platform'; return; }
+  out.textContent='⏳ scheduling…';
+  for(const plat of plats){
+    let ctext=text;
+    if(!ctext){
+      // generate per platform quickly via terminal? reuse bulk logic without publish
+      out.textContent='generating for '+plat+'…';
+      try{ const gj=await api('/api/generate',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({niche,platform: plat==='x'?'twitter':plat, tone})}); ctext=(gj.data?.content?.text||gj.data?.content?.caption||'').trim() || niche; } catch(e){ ctext=niche; }
+    }
+    const content={platform:plat, niche, tone, text:ctext, title:ctext.split('\n')[0].slice(0,100)};
+    if(UPLOADED_VIDEO) content.media={video:UPLOADED_VIDEO};
+    if(UPLOADED_IMAGE) content.media={...(content.media||{}), image:UPLOADED_IMAGE};
+    const sj=await api('/api/schedule',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({content, post_time: new Date(when).toISOString()})});
+    out.textContent = sj.ok ? '✓ scheduled '+plat+' for '+when : '✕ '+sj.error;
+  }
+  loadScheduleQueue();
+}
+async function loadScheduleQueue(){
+  const box=$('scheduleQueue'); if(!box) return;
+  try{
+    const j=await api('/api/schedule'); if(!j.ok) return;
+    const items=(j.data.scheduled||[]).filter(s=>s.status==='scheduled').slice(-10).reverse();
+    if(!items.length){ box.innerHTML='<div class="sub">No scheduled posts — use Schedule… to queue.</div>'; return; }
+    box.innerHTML='<div class="sub" style="margin-bottom:4px">Scheduled queue (due auto-publishes every minute):</div>'+items.map(s=>`<div class="prow"><div class="pa">◷</div><div class="pn"><b>${esc(s.content.platform)} — ${esc((s.content.text||'').slice(0,60))}</b><span>${esc(s.post_time)} • ${esc(s.content.niche||'')}</span></div><span class="plugin wait">scheduled</span></div>`).join('');
+  }catch(e){}
+}
+async function bulkPost(draftOnly){
+  const niche=$('stNiche')?.value || SET.agent.defaultNiche || 'AI & Technology';
+  const tone=$('stTone')?.value || 'professional';
+  const text=$('bulkText')?.value?.trim() || '';
+  const draftFlag = draftOnly || ($('bulkDraft') && $('bulkDraft').checked);
+  const plats=[...document.querySelectorAll('#bulkChecks input:checked')].map(i=>i.value);
+  const out=$('bulkOut'); out.style.display='block'; out.className='out-msg'; out.textContent='⏳ posting to '+plats.join(', ')+' …';
+  if(!plats.length){ out.className='out-msg err'; out.textContent='Select at least one platform.'; return; }
+  const payload={niche,tone,text,platforms:plats,autoPublish:!draftFlag};
+  if(UPLOADED_VIDEO) payload.video_path=UPLOADED_VIDEO;
+  if(UPLOADED_IMAGE) payload.image_path=UPLOADED_IMAGE;
+  if(UPLOADED_VIDEO && plats.includes('youtube')||plats.includes('tiktok')) out.textContent+=' (with uploaded video)';
+  try{
+    const j=await api('/api/publish/bulk',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)});
+    if(!j.ok){ out.className='out-msg err'; out.textContent='Error: '+j.error; return; }
+    const r=j.data.results||{};
+    const lines=Object.entries(r).map(([p,v])=> p+': '+(v.ok?'✓ '+(v.result?'published':'drafted')+' — '+(v.preview||''):'✕ '+(v.error||'failed')));
+    out.className='out-msg ok'; out.textContent=lines.join('\\n');
+    if(Object.values(r).some(v=>v.ok)) loadAgent();
+  }catch(e){ out.className='out-msg err'; out.textContent='Network error: '+(e.message||e); }
+}
+let ACCOUNTS=[];
+function renderPlatforms(){
+  const plat=getDesiredOrder();
+  const html=plat.map(p=>{
+    const en=SET.platforms[p]?.enabled;
+    const mode = p==='youtube'||p==='tiktok'?'oauth':'token';
+    return card(['⇆',p.toUpperCase()],`
+      <label class="tg"><input type="checkbox" ${en?'checked':''} onchange="setPlat('${p}')"><span class="sw"></span><span>Enabled in agent</span></label>
+      <div style="height:10px"></div>
+      <div class="prow"><div class="pa">${ico(p)}</div><div class="pn"><b>Connection</b><span id="ps-${p}">…</span></div></div>
+      <div class="prow"><div class="pa">${ico(p)}</div><div class="pn"><b>Payout</b><span id="po-${p}">…</span></div></div>
+      <div style="display:flex;gap:8px;margin-top:12px">
+        <button class="btn sm" onclick="connectAcct('${p}')">＋ Connect</button>
+        <button class="btn sm ghost" onclick="disconnectAcct('${p}')">－ Disconnect</button>
+      </div>
+      <div class="assign">
+        <b style="font-size:11px;letter-spacing:1px;color:#8b93b8">AGENT ASSIGNMENT</b>
+        <label class="tg"><input type="checkbox" data-a="${p}" data-k="assigned" onchange="saveAssign('${p}')"><span class="sw"></span><span>Agent works this account</span></label>
+        <label class="tg"><input type="checkbox" data-a="${p}" data-k="active" onchange="saveAssign('${p}')"><span class="sw"></span><span>Active — being worked now</span></label>
+        <label class="tg"><input type="checkbox" data-a="${p}" data-k="autoPost" onchange="saveAssign('${p}')"><span class="sw"></span><span>Auto-post without approval</span></label>
+        <label class="tg"><input type="checkbox" data-a="${p}" data-k="humanApproval" onchange="saveAssign('${p}')"><span class="sw"></span><span>Hold everything for my approval</span></label>
+        <div class="field" style="margin-top:8px"><label>Working niche</label>
+          <input class="input" data-a="${p}" data-k="niche" placeholder="e.g. AI & Technology" onchange="saveAssign('${p}')"></div>
+        <div class="row2">
+          <div class="field"><label>Content</label>
+            <select class="input" data-a="${p}" data-k="contentTypes" onchange="saveAssign('${p}')">
+              <option value="text">text</option><option value="shorts">shorts</option>
+              <option value="long">long-form</option><option value="image">image</option><option value="story">story</option>
+            </select></div>
+          <div class="field"><label>Daily limit</label>
+            <input type="number" min="0" class="input" data-a="${p}" data-k="dailyPostLimit" onchange="saveAssign('${p}')"></div>
+        </div>
+        ${p==='youtube'?`<div class="field"><label>YouTube privacy on auto-post</label>
+          <select class="input" data-a="${p}" data-k="youtubePrivacy" onchange="saveAssign('${p}')">
+            <option value="unlisted">unlisted</option><option value="public">public</option><option value="private">private</option>
+          </select></div>`:''}
+        ${MEDIAHINT[p]?`<div class="sub">↯ auto-post for ${p} needs real media — drafts otherwise.</div>`:''}
+      </div>`);
+  }).join('');
+  $('view-platforms').innerHTML=html;
+  $('view-platforms').style.display='';
+}
+function assignEl(p,k){ return document.querySelector(`[data-a="${p}"][data-k="${k}"]`); }
+function saveAssign(p){
+  const get=k=>assignEl(p,k);
+  const body={platform:p, assigned:get('assigned').checked, active:get('active').checked,
+    autoPost:get('autoPost').checked, humanApproval:get('humanApproval').checked,
+    niche:get('niche').value, dailyPostLimit:parseInt(get('dailyPostLimit').value||0),
+    contentTypes:[get('contentTypes').value]};
+  const pr=get('youtubePrivacy'); if(pr) body.youtubePrivacy=pr.value;
+  api('/api/agent/assign',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)})
+    .then(j=>{ if(!j.ok) alert('Assign failed: '+j.error); });
+}
+function applyAssign(acc){
+  const a=acc.assignment||{};
+  ['assigned','active','autoPost','humanApproval'].forEach(k=>{
+    const el=assignEl(acc.name,k); if(el) el.checked=!!a[k];
+  });
+  const n=assignEl(acc.name,'niche'); if(n) n.value=a.niche||'';
+  const d=assignEl(acc.name,'dailyPostLimit'); if(d) d.value=a.dailyPostLimit??4;
+  const c=assignEl(acc.name,'contentTypes'); if(c) c.value=(a.contentTypes||['text'])[0];
+  const pr=assignEl(acc.name,'youtubePrivacy'); if(pr) pr.value=a.youtubePrivacy||'unlisted';
+}
+async function loadAccounts(){
+  try{
+    const j=await api('/api/accounts');
+    ACCOUNTS=j.data.accounts;
+    ACCOUNTS.forEach(acc=>{
+      if($(`ps-${acc.name}`)) $(`ps-${acc.name}`).textContent = acc.connected?'connected':'not connected';
+      if($(`po-${acc.name}`)) $(`po-${acc.name}`).textContent = acc.payout||'—';
+      if($(`ac-${acc.name}`)) $(`ac-${acc.name}`).textContent = acc.connected? acc.check||'ok' : '—';
+      applyAssign(acc);
+    });
+  }catch(e){}
+}
+async function connectAcct(p){
+  const j=await api('/api/connect/'+p,{method:'POST'});
+  if(!j.ok){ alert(j.error); return; }
+  const m=j.data;
+  if(m.mode==='oauth'){
+    if(m.auth_url) window.open(m.auth_url,'_blank');
+    alert(m.note||'OAuth flow started. After authorizing, click Refresh to verify.');
+    refreshAll();
+  } else {
+    openTokenModal(p, m.fields||[]);
+  }
+}
+async function disconnectAcct(p){
+  if(!confirm('Disconnect '+p+'? Its saved credentials will be removed from .env.')) return;
+  await api('/api/disconnect/'+p,{method:'POST'});
+  refreshAll();
+}
+function openTokenModal(p,fields){
+  $('tokenBody').innerHTML=fields.map(f=>
+    `<div class="field"><label>${esc(f.label)}</label><input class="input" data-v="${esc(f.var)}" placeholder="${esc(f.var)}" autocomplete="off"></div>`).join('');
+  $('tokenOvl').classList.add('show'); $('tokenPanel').classList.add('open');
+  $('tokenSave').onclick=async function(){
+    const values={};
+    document.querySelectorAll('#tokenBody .input').forEach(i=>{ if(i.value) values[i.dataset.v]=i.value; });
+    if(!Object.keys(values).length){ alert('Enter at least one value'); return; }
+    const j=await api('/api/token/'+p,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({values})});
+    if(j.ok){ closeTokenModal(); alert('Saved. Connection check: '+JSON.stringify(j.data.check||{})); refreshAll(); }
+    else alert('Save failed: '+j.error);
+  };
+}
+function closeTokenModal(){ $('tokenOvl').classList.remove('show'); $('tokenPanel').classList.remove('open'); }
+function renderMoney(){
+  const html =
+    card(['$','MONETIZATION — ELIGIBILITY'],`<div id="moneyGrid"></div>`)
+    + card(['▲','PATH TO PAYOUT'],`<div id="pathGrid"><span class="sub">measuring…</span></div>`)
+    + card(['✓','PAYOUT READINESS'],`<div id="readyList"><span class="sub">loading…</span></div>`);
+  $('view-money').innerHTML = html;
+  $('view-money').style.display='';
+  loadMoney();
+}
+async function loadMoney(){
+  try{
+    const j=await api('/api/agent/path');
+    drawPath(j.data.path||{});
+  }catch(e){}
+  drawChecklist();
+}
+function drawPath(p){
+  const box=$('pathGrid'); if(!box) return;
+  const y=(p.platforms&&p.platforms.youtube)||{};
+  const d2 = y.days_to_1000_subs==null? '∞ (grow your weekly rate)' : y.days_to_1000_subs.toLocaleString();
+  const pct = y.subs? Math.min(100, Math.round(y.subs/(y.target_subs||1000)*100)) : 0;
+  box.innerHTML = `
+    <div class="card glass"><h3><span class="h-ico">▶</span>YOUTUBE → 1,000 SUBS</h3>
+      <div class="value">${Number(y.subs||0).toLocaleString()} <span class="sub">/ ${Number(y.target_subs||1000).toLocaleString()}</span></div>
+      <div class="bar"><i style="width:${pct}%"></i></div>
+      <div class="sub">+${Number(y.subs_this_week||0).toLocaleString()}/wk pace · ETA <b>${d2} days</b> · last video ${Number(y.last_video_views||0).toLocaleString()} views · ${y.pulls||0} snapshots</div></div>
+    <div class="card glass"><h3><span class="h-ico">$</span>NEXT MILESTONE — YouTube Partner</h3>
+      <div class="prow" style="margin-top:6px"><div class="pn"><b>1,000 subs or 4,000 watch-hours + 10M Shorts / 90 days</b><span>then apply for monetization review</span></div>
+        ${y.subs>=1000? '<span class="plugin on">● threshold met</span>' : `<span class="plugin wait">○ ${(1000-(y.subs||0)).toLocaleString()} subs to go</span>`}
+      </div>
+      <div class="sub" style="margin-top:8px">Based on ${esc(p.updated||'no analytics yet')}. Pulls happen every agent cycle.</div></div>`;
+}
+const CHECKS=[
+  {id:'adsense',label:'Apply for YouTube AdSense / monetization review the day the threshold is met',warn:'review can take weeks'},
+  {id:'tiktok-user',label:'TikTok sandbox: add yourself as target user in the portal + run the demo video',warn:'blocks TikTok OAuth right now'},
+  {id:'tiktok-app',label:'TikTok app review: submit demo video & pass production review',warn:'no production posting until approved'},
+  {id:'paypal',label:'Verify a PayPal account & link it for TikTok payouts'},
+  {id:'ig-acct',label:'Instagram: switch to Professional account + host images for posting'},
+  {id:'tiktok-followers',label:'Reach 10,000 TikTok followers (Creator Rewards pays by video views)'},
+  {id:'yt-subs',label:'Reach 1,000 YouTube subs + 4,000h / 10M Shorts views (YPP)'},
+  {id:'x-premium',label:'X: Premium subscription required for ad-share revenue'},
+  {id:'pw',label:'Change the shared TikTok password (it was exposed in our chat)',warn:'security first'},
+];
+function drawChecklist(){
+  const box=$('readyList'); if(!box) return;
+  const saved=(SET.agent.checklist)||{};
+  box.innerHTML=CHECKS.map(c=>{
+    const done=!!saved[c.id];
+    return `<label class="prow" style="cursor:pointer;gap:10px">
+      <input type="checkbox" ${done?'checked':''} onchange="toggleCheck('${c.id}')" style="accent-color:var(--accent);width:15px;height:15px">
+      <div class="pn" style="flex:1"><b>${esc(c.label)}</b>${c.warn?`<span style="display:block;color:#f59e0b;font-size:11px">↯ ${esc(c.warn)}</span>`:''}</div>
+      <span class="plugin ${done?'on':'wait'}">${done?'done':'todo'}</span></label>`;
+  }).join('');
+}
+async function toggleCheck(id){
+  SET.agent.checklist=Object.assign({},SET.agent.checklist||{});
+  SET.agent.checklist[id]=!SET.agent.checklist[id];
+  try{
+    const j=await api('/api/settings',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({agent:{checklist:SET.agent.checklist}})});
+    if(j.ok) SET=j.data.settings;
+  }catch(e){}
+  drawChecklist();
+}
+
+/* ---------------- agent view ---------------- */
+function renderAgent(){
+  $('view-agent').innerHTML =
+    card(['◎','AUTONOMOUS — MASTER'],`
+      <div style="display:flex;align-items:center;gap:12px">
+        <label class="tg" style="--w:52px;--h:28px"><input type="checkbox" id="agEnabledMain" onchange="toggleAutonomous(this.checked)"><span class="sw"></span><span id="agEnabledMainLabel" style="font-weight:700">Autonomous: …</span></label>
+        <span class="sub" id="agEnabledMainHint">loading…</span>
+      </div>
+      <div class="sub" style="margin-top:8px">Master kill-switch. When OFF, no background cycles run, Start is blocked, and run_background.py stays idle on boot.</div>`)
+    +
+    card(['◎','AUTONOMOUS LOOP'],`
+      <div class="value" id="agRunning">…</div>
+      <div class="sub" id="agCycle">no cycle yet</div>
+      <div style="display:flex;gap:8px;margin-top:12px;flex-wrap:wrap">
+        <button class="btn sm" id="btnStart" onclick="agentStart()">▶ Start loop</button>
+        <button class="btn sm ghost" onclick="agentStop()">■ Stop</button>
+        <button class="btn sm ghost" id="btnRunNow" onclick="agentRunNow()">⚡ Run cycle now</button>
+      </div>
+      <div class="logbox" id="agRecent" style="margin-top:12px"></div>`)
+      +
+    card(['✉','CHAT CONSOLE — full potential'],`
+      <div class="row2">
+        <div class="field"><label>Provider</label><select class="input" id="chatProv" onchange="chatModelRefresh()">
+          <option value="">use settings</option><option value="auto">auto (fail over)</option>
+          <option value="nvidia">nvidia</option><option value="openrouter">openrouter</option>
+          <option value="openai">openai</option><option value="anthropic">anthropic</option></select></div>
+        <div class="field"><label>Model (blank = settings default)</label><input class="input" id="chatModel" list="chatModelList" placeholder="e.g. openai/gpt-4o-mini"><datalist id="chatModelList"></datalist></div>
+      </div>
+      <div class="row2">
+        <div class="field"><label>Reasoning</label><select class="input" id="chatReason">
+          <option value="">use settings</option><option value="off">off</option><option value="low">low</option><option value="medium">medium</option><option value="high">high</option></select></div>
+        <div class="field"><label>Action</label><select class="input" id="chatAction">
+          <option value="chat">chat</option><option value="niche">niche research</option><option value="content">write content</option><option value="analyst">analyze accounts</option><option value="monetization">monetization plan</option></select></div>
+      </div>
+      <div class="sub" id="chatMeta" style="margin:4px 0">…</div>
+      <div class="feed" id="askFeed" style="height:280px"></div>
+      <div style="display:flex;gap:8px;margin-top:10px">
+        <input class="input" id="askIn" placeholder='Ask anything — e.g. "plan my week for youtube" (Enter to send)' onkeydown="if(event.key==='Enter')sendChat()">
+        <button class="btn" onclick="sendChat()">Send</button>
+      </div>
+      <div style="display:flex;gap:6px;margin-top:8px;flex-wrap:wrap">
+        <button class="btn sm ghost" onclick="quickChat('niche','find me a niche for youtube this week')">🔍 niche</button>
+        <button class="btn sm ghost" onclick="quickChat('content','write a motivational tiktok hook + caption for AI & Technology')">✦ hook</button>
+        <button class="btn sm ghost" onclick="quickChat('analyst','analyze my accounts and give 3 fixes')">📊 audit</button>
+        <button class="btn sm ghost" onclick="quickChat('monetization','what is my fastest path to payout?')">💰 payout</button>
+        <button class="btn sm ghost" onclick="exportChat()">⤓ export</button>
+        <button class="btn sm ghost" onclick="clearChat()">✕ clear</button>
+        <button class="btn ghost" id="micBtn" onclick="toggleVoice()" title="Voice on/off">🎤</button>
+      </div>
+      <div class="sub" style="margin-top:6px">Failover is automatic — if a model errors, the next configured provider answers and the switch is shown under the reply.</div>`)
+       +
+    card(['✓','NEEDS YOUR APPROVAL'],`
+      <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:8px">
+        <select class="input" id="draftFilter" style="width:auto;min-width:140px" onchange="drawDraftsCache()">
+          <option value="">All platforms</option><option value="youtube">YouTube</option><option value="tiktok">TikTok</option><option value="x">X</option><option value="instagram">Instagram</option>
+        </select>
+        <button class="btn sm" onclick="bulkApprove('approve')">✓ Approve all filtered</button>
+        <button class="btn sm ghost" onclick="bulkApprove('reject')">✕ Reject all filtered</button>
+        <span class="sub" id="draftCount"></span>
+      </div>
+      <div id="draftList" style="margin-top:6px"></div>`)
+  ;
+  $('view-agent').style.display='';
+}
+function syncAutonomousUI(enabled, running){
+  const on = !!enabled;
+  const chkMain = $('agEnabledMain'), chkSet = $('agEnabled');
+  if(chkMain){ chkMain.checked = on; const lb=$('agEnabledMainLabel'); if(lb) lb.textContent = on ? 'Autonomous: ON' : 'Autonomous: OFF'; }
+  if(chkSet){ chkSet.checked = on; }
+  const hint = $('agEnabledMainHint'), h2 = $('agEnabledHint');
+  const txt = on ? 'Agent may run cycles' : 'Disabled — no cycles';
+  if(hint) hint.textContent = txt;
+  if(h2) h2.textContent = on ? 'Autonomous is enabled — Start / cycles allowed.' : 'When off, the agent never runs in background and Start/Cycles are blocked.';
+  const bs = $('btnStart'), br = $('btnRunNow');
+  if(bs) bs.disabled = !on;
+  if(br) br.disabled = !on;
+}
+async function loadAgent(){
+  try{
+    const j=await api('/api/accounts');
+    const ag=j.data.agent||{};
+    const enabled = j.data.autonomousEnabled ?? ag.enabled ?? (SET && SET.agent && SET.agent.enabled);
+    syncAutonomousUI(enabled, ag.running);
+    if($('agRunning')){ const el=$('agRunning'); el.textContent=ag.running?'● RUNNING':'○ idle'; el.className='value'+(ag.running?'':' sub'); }
+    if($('agCycle')) $('agCycle').textContent=ag.last_cycle?
+      `last cycle #${ag.last_cycle.cycle} finished ${(ag.last_cycle.end||'').replace('T',' ').slice(0,16)} · ${Object.keys(ag.last_cycle.platforms||{}).join(', ')||'nothing assigned'}` : 'no cycle yet';
+    if($('agRecent')) $('agRecent').innerHTML=(ag.recent||[]).slice(-12).reverse().map(r=>`
+      <div class="lrow"><b>${r.ts?'#':''}cycle ${r.cycle||'—'}</b> <span style="color:#8b93b8">${esc(r.summary||(r.error?r.error.slice(0,80):''))}</span></div>`).join('')
+      ||'<div class="sub">No cycles run. Start the loop or hit Run cycle now.</div>';
+    const d=await api('/api/agent/drafts');
+    drawDrafts(d.data.drafts||[]);
+    loadChatMeta(); chatModelRefresh();
+  }catch(e){}
+}
+async function toggleAutonomous(val){
+  const enabled = !!val;
+  syncAutonomousUI(enabled, null);
+  try{
+    const j = await api('/api/agent/enabled',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({enabled})});
+    if(!j.ok){ alert('Toggle failed: '+j.error); }
+    else if(SET && SET.agent) SET.agent.enabled = j.data.enabled;
+    loadAgent();
+  }catch(e){ alert('Network error toggling autonomous'); }
+}
+let DRAFTS_CACHE=[];
+function drawDrafts(drafts){
+  DRAFTS_CACHE=drafts||[];
+  drawDraftsCache();
+}
+function drawDraftsCache(){
+  const drafts=DRAFTS_CACHE;
+  const filter=$('draftFilter')?.value||'';
+  const list= filter ? drafts.filter(d=> (d.content.platform||'')===filter) : drafts;
+  const cnt=$('draftCount'); if(cnt) cnt.textContent = list.length ? `${list.length} shown / ${drafts.length} total` : `${drafts.length} total`;
+  const el=$('draftList'); if(!el) return;
+  el.innerHTML=list.map(d=>`
+    <div class="prow" style="align-items:flex-start">
+      <div class="pn" style="flex:1"><b>${esc(d.content.title||'draft')}</b>
+        <span style="display:block;white-space:normal;color:#8b93b8;font-size:11.5px">${esc((d.content.text||'').slice(0,140))}${(d.content.text||'').length>140?'…':''}</span>
+        <span class="plugin wait">${esc(d.content.platform||'')} · waiting</span>
+        ${d.content.media?.video?'<span class="plugin on">↯ media ready</span>':''}
+        ${d.content.media?.error?'<span class="plugin" style="opacity:.6">↯ media failed</span>':''}</div>
+      <div style="display:flex;gap:6px">
+        <button class="btn sm" title="Approve & publish" onclick="approveDraft(${d.index})">✓</button>
+        <button class="btn sm ghost" title="Reject" onclick="rejectDraft(${d.index})">✕</button>
+      </div>
+    </div>`).join('')||'<div class="sub">No drafts awaiting approval'+(filter?` for ${filter}`:'')+'</div>';
+}
+async function bulkApprove(action){
+  const filter=$('draftFilter')?.value||'';
+  const list= filter ? DRAFTS_CACHE.filter(d=> (d.content.platform||'')===filter) : DRAFTS_CACHE;
+  if(!list.length){ showToast('No drafts to '+action, 'info'); return; }
+  if(!confirm((action==='reject'?'Reject':'Approve & publish')+' '+list.length+' drafts'+(filter?' for '+filter:'')+'?')) return;
+  showToast('⏳ '+action+' '+list.length+'…','info');
+  const j=await api('/api/agent/approve/bulk',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action, platform: filter||undefined})});
+  if(!j.ok){ showToast('✕ '+(j.error||'failed'), 'err'); return; }
+  const ok=(j.data.results||[]).filter(r=>r.ok).length, fail=(j.data.results||[]).filter(r=>!r.ok).length;
+  showToast(`✓ ${ok} ok, ${fail} failed` + (fail? ' — see Recent Operations':''), fail?'err':'ok');
+  loadAgent();
+}
+async function approveDraft(i){
+  const j=await api('/api/agent/approve',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({index:i})});
+  alert(j.ok? 'Published ✓':'Failed: '+(j.error||'unknown'));
+  loadAgent();
+}
+async function rejectDraft(i){
+  await api('/api/agent/approve',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({index:i,action:'reject'})});
+  loadAgent();
+}
+async function agentStart(){
+  const j=await api('/api/agent/start',{method:'POST'});
+  if(!j.ok) alert(j.error||'Start failed — is Autonomous enabled?');
+  loadAgent();
+}
+async function agentStop(){ await api('/api/agent/stop',{method:'POST'}); loadAgent(); }
+async function agentRunNow(){
+  const curEnabled = $('agEnabledMain') ? $('agEnabledMain').checked : true;
+  if(!curEnabled){ alert('Autonomous is OFF — enable it first.'); return; }
+  $('agRunning').textContent='working…';
+  try{ const j=await api('/api/agent/run',{method:'POST'});
+    if(!j.ok){ $('agRunning').textContent='blocked: '+j.error; return; }
+    const cyc=j.data.cycle||{};
+    if(cyc.skipped){ $('agRunning').textContent='skipped — '+cyc.skipped; $('agCycle').textContent=cyc.skipped; return; }
+    const platforms=cyc.platforms||{};
+    $('agRunning').textContent='cycle done';
+    $('agRunning').className='value';
+    $('agCycle').textContent=Object.entries(platforms).map(([p,v])=>p+': '+Object.keys(v)[0]).join(' · ')||'cycle done';
+  }catch(e){ $('agRunning').textContent='cycle failed'; }
+  loadAgent();
+}
+let CHAT_HIST=[];
+async function chatModelRefresh(){
+  const dl=$('chatModelList'); const pv=$('chatProv')?.value||'';
+  if(!dl) return;
+  try{
+    const j=await api('/api/models?provider='+(pv||'openrouter'));
+    if(j.ok){ dl.innerHTML=(j.data.models||[]).slice(0,60).map(m=>`<option value="${esc(m)}">`).join(''); }
+  }catch(e){}
+}
+async function loadChatMeta(){
+  try{
+    const j=await api('/api/status'); const a=j.data.ai||{};
+    const m=$('chatMeta'); if(m) m.innerHTML=`active: <b>${esc(a.active_provider||a.provider||'?')}</b> · model <b>${esc(a.model||'?')}</b> · reasoning <b>${esc(a.reasoning||'?')}</b> · keys ${['nvidia','openrouter','openai','anthropic'].map(k=>`${k[0].toUpperCase()}:${(a.keys||{})[k]?'✓':'—'}`).join(' ')}`;
+    const h=await api('/api/chat/history');
+    if(h.ok && h.data.history){ CHAT_HIST=h.data.history.slice(-20); drawChatHist(); }
+  }catch(e){}
+}
+function drawChatHist(){
+  const feed=$('askFeed'); if(!feed) return;
+  feed.innerHTML=CHAT_HIST.map(m=>`<div class="bub ${m.role==='user'?'user':'ag'}">${esc(m.text||'')}</div>`).join('');
+  feed.scrollTop=feed.scrollHeight;
+}
+function quickChat(action,msg){ const a=$('chatAction'); if(a) a.value=action; sendChat(msg); }
+async function sendChat(prefill){
+  const inp=$('askIn'); const m=(prefill||inp.value||'').trim(); if(!m) return;
+  const feed=$('askFeed');
+  feed.insertAdjacentHTML('beforeend',`<div class="bub user">${esc(m)}</div>`);
+  inp.value='';
+  feed.insertAdjacentHTML('beforeend',`<div class="bub ag typing"><span class="spin"></span> thinking…</div>`);
+  feed.scrollTop=feed.scrollHeight;
+  setGodEye('speaking');
+  const payload={message:m, action:$('chatAction')?.value||'chat',
+    provider:$('chatProv')?.value||undefined, model:$('chatModel')?.value?.trim()||undefined,
+    reasoning:$('chatReason')?.value||undefined,
+    history:CHAT_HIST.slice(-6).map(x=>({role:x.role,text:x.text}))};
+  try{
+    const j=await api('/api/chat',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)});
+    if(feed.lastElementChild) feed.lastElementChild.remove();
+    if(!j.ok){ feed.insertAdjacentHTML('beforeend',`<div class="bub ag">✕ ${esc(j.error||'failed')}</div>`); return; }
+    const d=j.data;
+    CHAT_HIST.push({role:'user',text:m},{role:'agent',text:d.text});
+    const id='bub-'+Date.now();
+    const fo=(d.failover&&d.failover.length)?`<div class="sub" style="margin-top:6px">↯ failover: ${esc(d.failover.map(f=>f.provider+'/'+f.model).join(' → '))} → <b>${esc(d.provider)}/${esc(d.model)}</b></div>`:`<div class="sub" style="margin-top:6px">${esc(d.provider||'')}/${esc(d.model||'')} · ${d.latency}s · ~${d.est_tokens} tok · reasoning ${esc(d.reasoning||'')}</div>`;
+    feed.insertAdjacentHTML('beforeend',`<div class="bub ag typing" id="${id}"></div><div id="${id}-meta">${fo}</div>`);
+    await typeInto(id, d.text||'', 14);
+    const mm=$('chatMeta'); if(mm) mm.innerHTML=`last answer: <b>${esc(d.provider||'')}</b>/${esc(d.model||'')} · ${d.latency}s`;
+    feed.scrollTop=feed.scrollHeight;
+    speakText(d.text||'');
+  }catch(e){
+    if(feed.lastElementChild) feed.lastElementChild.remove();
+    feed.insertAdjacentHTML('beforeend',`<div class="bub ag">Network error — is GodEye online?</div>`);
+  }
+  setGodEye('idle');
+}
+function exportChat(){
+  const txt=CHAT_HIST.map(m=>`${m.role.toUpperCase()}: ${m.text}`).join('\n\n');
+  const blob=new Blob([txt||'(empty)'],{type:'text/plain'});
+  const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download='godeye-chat.txt'; a.click();
+}
+async function clearChat(){ CHAT_HIST=[]; drawChatHist(); await api('/api/chat/history',{method:'DELETE'}); }
+async function askAgent(prefill){ return sendChat(prefill); }
+function typeInto(id, text, cps){
+  return new Promise(res=>{
+    const el=document.getElementById(id); if(!el) return res();
+    let i=0; const clean = text.replace(/[*_#`]/g,'');
+    el.textContent='';
+    const tick=()=>{
+      if(i>=clean.length){ el.classList.remove('typing'); return res(); }
+      el.textContent = clean.slice(0, i+1);
+      i++;
+      el.parentElement.scrollTop = el.parentElement.scrollHeight;
+      setTimeout(tick, 1000/cps);
+    };
+    tick();
+  });
+}
+let _voices=null;
+function speakText(t){
+  if(!voiceOn || !('speechSynthesis' in window)) return;
+  try{ speechSynthesis.cancel(); }catch(e){}
+  const u=new SpeechSynthesisUtterance(t.slice(0,380));
+  u.rate=1.02; u.pitch=1.0; u.volume=0.92;
+  if(!_voices) _voices=speechSynthesis.getVoices();
+  const pref=_voices.find(v=>/Jenny|Aria|Sonia|Google UK|Microsoft/i.test(v.name))||_voices[0];
+  if(pref) u.voice=pref;
+  u.onstart=()=>setGodEye('speaking');
+  u.onend=()=>setGodEye('idle');
+  u.onerror=()=>setGodEye('idle');
+  speechSynthesis.speak(u);
+}
+if('speechSynthesis' in window){
+  speechSynthesis.onvoiceschanged=()=>{ _voices=speechSynthesis.getVoices(); };
+}
+function getDesiredOrder(){
+  return Object.entries(SET.platforms||{}).sort((a,b)=>a[1].priority-b[1].priority).map(e=>e[0]);
+}
+const ICO={tiktok:'▶',youtube:'▶',x:'𝕏',instagram:'◉'};
+function ico(p){return ICO[p]||'◦'}
+const MEDIAHINT={tiktok:'needs video',instagram:'needs image'};
+
+/* ---------------- data ---------------- */
+async function api(path, opts){
+  const r = await fetch(path, opts);
+  return r.json();
+}
+async function refreshAll(){
+  renderOverview(); switchView('overview');
+  const cpu=$('sysVal'); if(cpu)cpu.textContent='syncing…';
+  try{
+    const j = await api('/api/status');
+    const st = j.data;
+    drawOverview(st);
+    loadAccounts();
+    loadAgent();
+  }catch(e){ if($('sysVal'))$('sysVal').textContent='offline'; }
+}
+function drawOverview(st){
+  const agent = st.ai;
+  $('aiChip').textContent = (agent.available? agent.provider + ' · ' + agent.model : 'none').slice(0,34);
+  $('sideModel').textContent = (agent.available? agent.model : 'no AI key');
+  $('sysVal').textContent = agent.available?'ENGINE ONLINE':'AWAITING KEYS';
+  $('sysSub').textContent = `${agent.provider} · ${agent.model}`;
+  $('aiPc').textContent = agent.available? (100)+'%':'0%';
+  $('aiBar').style.width = agent.available?'100%':'0%';
+  $('sysBar').style.width = agent.available?'100%':'10%';
+  $('aiModelSub').textContent = agent.available?`${agent.provider} active`:'no provider configured';
+
+  // platforms widget
+  st.platforms.forEach(p=>{
+    const el=$('platCon');
+    const plug = p.connected? '<span class="plugin on">● connected</span>' : '<span class="plugin off">○ off</span>';
+    updateHtml('platCon', 'afterbegin',
+      `<div class="prow"><div class="pa">${ico(p.name)}</div>
+       <div class="pn"><b>${p.name}</b><span>${p.payout||'—'}</span></div>${plug}</div>`);
+    if($(`ps-${p.name}`)) $(`ps-${p.name}`).textContent = p.connected?'connected':'not connected';
+    if($(`po-${p.name}`)) $(`po-${p.name}`).textContent = p.payout||'—';
+  });
+
+  // monetization pulse
+  const mon = st.monetization||[];
+  updateHtml('monPulse','', mon.map(m=>{
+    const label = m.platform, ok = m.eligible!==undefined? m.eligible : (m.error? 'err' : (m.connected!==undefined? m.connected : '—'));
+    return `<div class="prow"><div class="pa">${ico(m.platform)}</div>
+      <div class="pn"><b>${label}</b><span>${m.message||m.error||'connected'}</span></div>
+      ${typeof ok==='boolean'? `<span class="plugin ${ok?'on':'wait'}">${ok?'eligible':'progress'}</span>`:''}</div>`;
+  }).join('') || '<div class="sub">No platforms connected</div>');
+  renderMoneyFull(st.monetization);
+
+  // tax
+  const tax = st.tax;
+  if(tax && tax.tax_estimate){
+    const inc = tax.income_summary?.total_income||0, exp = tax.expense_summary?.total_expenses||0,
+          est = tax.tax_estimate?.estimated_tax_liability||0;
+    updateHtml('taxBox','',`
+      <div class="prow"><div class="pa">$</div><div class="pn"><b>Income (year)</b><span>$</span></div><b>$${Number(inc).toLocaleString()}</b></div>
+      <div class="prow"><div class="pa">$</div><div class="pn"><b>Expenses</b><span></span></div><b>$${Number(exp).toLocaleString()}</b></div>
+      <div class="prow"><div class="pa">↯</div><div class="pn"><b>Est. tax liability</b><span>${tax.year||''}</span></div><b>$${Number(est).toLocaleString()}</b></div>`);
+  } else updateHtml('taxBox','','<div class="sub">No financial activity yet</div>');
+
+  // activity
+  const mem = st.memory||{};
+  updateHtml('actBox','', Object.entries(mem).map(([k,v])=>
+    `<div class="prow"><div class="pa">↻</div><div class="pn"><b>${k.replace(/_/g,' ')}</b></div><b>${v}</b></div>`).join(''));
+
+  // publish queue
+  updateHtml('pubBox','',`
+    <div class="prow"><div class="pa">⤴</div><div class="pn"><b>scheduled posts</b></div><b>${mem.pending_posts??0}</b></div>
+    <div class="prow"><div class="pa">✓</div><div class="pn"><b>posted today</b></div><b>${mem.posted_today??0}</b></div>
+    <button class="btn sm ghost" style="margin-top:10px" onclick="openStudio()">✎ New post</button>`);
+  // Gap 4: analytics sparkline (lazy-load)
+  setTimeout(loadAnalyticsCharts, 600);
+}
+function loadAnalyticsCharts(){
+  const box=$('actBox'); if(!box) return;
+  // add chart under activity if not already
+  let chart=$('analyticsChart');
+  if(!chart){
+    const host=document.createElement('div'); host.id='analyticsChart'; host.style.marginTop='12px'; host.innerHTML='<div class="sub">loading charts…</div>';
+    box.parentElement.appendChild(host);
+  }
+  api('/api/analytics/history').then(j=>{
+    if(!j.ok) return;
+    const hist=j.data.activity_log||[];
+    const sched=j.data.scheduled_posts||[];
+    // aggregate posts per day last 7
+    const days=[...Array(7)].map((_,i)=>{ const d=new Date(Date.now()-i*86400000); return d.toISOString().slice(0,10); }).reverse();
+    const counts={}; days.forEach(d=>counts[d]=0);
+    sched.forEach(p=>{ const d=(p.created_at||'').slice(0,10); if(counts[d]!==undefined) counts[d]++; });
+    hist.forEach(h=>{ if(h.type==='content_drafted' || h.type==='content_creation'){ const d=(h.timestamp||'').slice(0,10); if(counts[d]!==undefined) counts[d]++; }});
+    const max=Math.max(1, ...Object.values(counts));
+    const bars=days.map(d=>{ const v=counts[d]; const h=Math.round(v/max*40); return `<div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:4px"><div style="width:100%;height:40px;display:flex;align-items:end"><i style="display:block;width:100%;height:${h}px;background:linear-gradient(180deg,var(--accent),var(--accent2));border-radius:4px 4px 0 0"></i></div><span style="font-size:10px;color:#8b93b8">${d.slice(5)}</span><span style="font-size:10px;color:#dfe3ff">${v}</span></div>`; }).join('');
+    $('analyticsChart').innerHTML=`<div style="display:flex;gap:6px;align-items:end">${bars}</div><div class="sub" style="margin-top:6px">Posts & drafts per day (last 7) — ${sched.length} scheduled, ${hist.length} activities</div>`;
+  }).catch(()=>{});
+}
+function showToast(msg, kind){
+  const host=$('toasts'); if(!host) return;
+  const div=document.createElement('div'); div.className='toast '+(kind||'info');
+  div.textContent=msg;
+  host.appendChild(div);
+  setTimeout(()=>{ div.style.opacity='0'; div.style.transform='translateY(4px)'; setTimeout(()=>div.remove(), 300); }, 3400);
+}
+function renderMoneyFull(mon){
+  const box = $('moneyGrid'); if(!box) return;
+  box.innerHTML = mon.map(m=>{
+    const name=m.platform, msg=m.message||m.error||'', eligible = m.eligible;
+    const pct = typeof m.progress==='number'? m.progress : (eligible===true?100: eligible===false?8: 0);
+    return `<div class="card glass"><h3><span class="h-ico">${ico(name)}</span>${name.toUpperCase()}</h3>
+      <div class="value">${eligible===true?'ELIGIBLE': eligible===false?'GROWING': msShort(msg)}</div>
+      <div class="bar"><i style="width:${pct}%"></i></div>
+      <div class="sub">${msg||'no data'}</div></div>`;
+  }).join('') || '<div class="card glass wide"><div class="sub">Connect a platform to see monetization progress.</div></div>';
+}
+function msShort(m){return (m||'').slice(0,26).toUpperCase()}
+function updateHtml(id, where, content){
+  const el=$(id); if(!el) return;
+  if(where==='before') el.insertAdjacentHTML('beforebegin', content);
+  else if(where==='afterbegin') el.insertAdjacentHTML('afterbegin', content);
+  else el.innerHTML = content;
+}
+
+/* ---------------- terminal (no-code cmd) ---------------- */
+let TERM_HIST=[], histIdx=-1;
+function renderTerminal(){
+  $('view-terminal').innerHTML = `
+  <div class="card glass terminal wide">
+    <div class="term-head">
+      <span class="dot" style="background:#ff5f57"></span><span class="dot" style="background:#ffbd2e"></span><span class="dot" style="background:#28c940"></span>
+      <b style="margin-left:8px;font-size:12px;letter-spacing:.6px">GODEYE TERMINAL — no-code • type help</b>
+      <span style="margin-left:auto;font-size:11px;color:#8b93b8">cmd / powershell style</span>
+      <button class="btn sm ghost" onclick="termClear()">clear</button>
+    </div>
+    <div class="term-out" id="termOut"><div class="term-row">GodEye Terminal v1 — type <b>help</b> for commands. Try: <b>status</b>, <b>publish bulk "your niche" --platforms tiktok,youtube</b>, <b>ask what should I post today?</b></div></div>
+    <div class="term-in"><span>GodEye&gt;</span><input id="termIn" placeholder="help | status | generate &quot;AI tips&quot; tiktok | publish bulk &quot;fitness&quot; --platforms tiktok,youtube | ask ..." autocomplete="off"></div>
+  </div>
+  <div class="card glass wide" style="padding:14px"><div class="sub">Tip: this terminal talks to <b>/api/terminal/exec</b> — whitelisted agent commands, natural language fallback via your AI provider. No shell access, no code needed.</div></div>`;
+  $('view-terminal').style.display='';
+  setTimeout(()=>{
+    const inp=$('termIn'); if(!inp) return;
+    inp.focus();
+    inp.addEventListener('keydown', async (e)=>{
+      if(e.key==='Enter'){
+        const cmd=inp.value.trim(); if(!cmd) return;
+        TERM_HIST.push(cmd); histIdx=TERM_HIST.length;
+        termPrint('> '+cmd, '#22c55e');
+        inp.value='';
+        termExec(cmd);
+      } else if(e.key==='ArrowUp'){
+        if(histIdx>0){ histIdx--; inp.value=TERM_HIST[histIdx]||''; }
+        e.preventDefault();
+      } else if(e.key==='ArrowDown'){
+        if(histIdx < TERM_HIST.length-1){ histIdx++; inp.value=TERM_HIST[histIdx]||''; } else { histIdx=TERM_HIST.length; inp.value=''; }
+      }
+    });
+  },80);
+}
+function termPrint(text, color){
+  const out=$('termOut'); if(!out) return;
+  const esc2=s=>s.replace(/&/g,'&amp;').replace(/</g,'&lt;');
+  const div=document.createElement('div'); div.className='term-row'; if(color) div.style.color=color;
+  div.innerHTML=esc2(text); out.appendChild(div); out.scrollTop=out.scrollHeight;
+}
+async function termExec(cmd){
+  const out=$('termOut');
+  const loading=document.createElement('div'); loading.className='term-row'; loading.style.color='#8b93b8'; loading.textContent='… running'; out.appendChild(loading); out.scrollTop=out.scrollHeight;
+  try{
+    const j=await api('/api/terminal/exec',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({command:cmd})});
+    loading.remove();
+    if(j.clear){ $('termOut').innerHTML=''; return; }
+    if(!j.ok){ termPrint('✕ '+j.error, '#f87171'); return; }
+    const txt=j.data.output || '(no output)';
+    termPrint(txt);
+    if(cmd.startsWith('publish')||cmd.startsWith('generate')) loadAgent();
+  }catch(e){ loading.remove(); termPrint('✕ network error: '+(e.message||e), '#f87171'); }
+}
+function termClear(){ const o=$('termOut'); if(o) o.innerHTML=''; }
+
+/* ---------------- actions ---------------- */
+function switchView(v){
+  ['overview','content','projects','calendar','inbox','notifs','platforms','agent','money','terminal'].forEach(x=>{
+    const el=$('view-'+x); if(el) el.style.display = x===v?'':'none';
+    document.querySelectorAll('.nav button').forEach(b=>b.classList.toggle('on', b.dataset.view===v));
+  });
+  const nav=document.getElementById('mainNav'); if(nav && window.innerWidth<=720) nav.classList.remove('open');
+  const titles={overview:'Overview',content:'Content Studio',projects:'Projects',calendar:'Content Calendar',inbox:'Inbox',notifs:'Alerts',platforms:'Accounts',agent:'Agent',money:'Monetization',terminal:'Terminal'};
+  document.querySelector('.topbar h1').textContent = titles[v]||'';
+  if(v==='content') renderContent();
+  if(v==='projects') renderProjects();
+  if(v==='calendar') renderCalendar();
+  if(v==='inbox') renderInbox();
+  if(v==='notifs') renderNotifs();
+  if(v==='platforms'){ renderPlatforms(); loadAccounts(); }
+  if(v==='agent'){ renderAgent(); loadAgent(); }
+  if(v==='money') renderMoney();
+  if(v==='terminal') renderTerminal();
+}
+function openStudio(){ switchView('content'); }
+async function runAnalyze(){
+  const btn = document.querySelector('#view-overview .btn'); 
+  const chip=$('sysSub'); const old=chip.textContent;
+  chip.textContent='analyzing niches…';
+  try{ const j = await api('/api/analyze',{method:'POST'});
+    if(j.ok){ const a=j.data.analysis;
+      chip.textContent = `top niche: ${a.top_niche||'?'} · ${(a.recommendations||[]).length} recommendations`;
+      $('sysBar').style.width='100%';
+    } else chip.textContent='analyze failed: '+j.error;
+  }catch(e){ chip.textContent='analyze failed'; }
+}
+const PLAT_LIMITS={twitter:280,x:280,instagram:2200,tiktok:2200,youtube:100};
+async function doGenerate(){
+  const out=$('genOut'); out.style.display='block'; out.className='out-msg';
+  out.innerHTML='<span class="spin"></span> generating with AI…';
+  const meta=$('genMeta'); if(meta) meta.style.display='none';
+  const body={niche:$('stNiche').value||SET.agent.defaultNiche, platform:$('stPlat').value, tone:$('stTone').value};
+  try{
+    const j = await api('/api/generate',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
+    if(!j.ok){ out.className='out-msg err'; out.textContent='Error: '+j.error; return; }
+    const c=j.data.content;
+    out.className='out-msg ok';
+    out.textContent = (c.text||'') + '\n\n[generated by '+j.data.provider+']';
+    const rb=$('gbRender');
+    if(rb){ rb.disabled=false; rb.dataset.text=c.text; rb.dataset.plat=body.platform; }
+    const hint=$('gbHint'); if(hint) hint.textContent=(c.text||'').length>=60?'✓ script ready to render':'add ~60+ chars for media';
+    // char counter + hashtags + copy
+    if(meta){
+      meta.style.display='flex';
+      const lim=PLAT_LIMITS[body.platform]||2200;
+      const n=(c.text||'').length;
+      $('genCount').textContent=`${n}/${lim} chars${n>lim?' — over limit, will be trimmed on post':''}`;
+      $('genCount').style.color=n>lim?'#f87171':'';
+      const tags=(c.hashtags||[]).join(' ')||'(no hashtags — add some for reach)';
+      $('genTags').textContent=tags;
+    }
+  }catch(e){ out.className='out-msg err'; out.textContent='Network error'; }
+}
+function copyGen(){ const t=$('genOut'); if(!t) return; const txt=t.textContent||''; (navigator.clipboard?navigator.clipboard.writeText(txt):Promise.reject()).then(()=>toast('Copied to clipboard','ok')).catch(()=>{ const r=document.createRange(); r.selectNode(t); getSelection().removeAllRanges(); getSelection().addRange(r); document.execCommand('copy'); toast('Copied','ok'); }); }
+async function renderPreview(){
+  const rb=$('gbRender'); if(!rb||!rb.dataset.text) return;
+  rb.disabled=true; rb.textContent='rendering… (tts + ffmpeg can take 20-40s)';
+  const box=$('mediaPrev'); box.style.display='block'; box.innerHTML='<span class="spin"></span> compositing quote cards, narration & slideshow…';
+  try{
+    const j=await api('/api/media/render',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({text:rb.dataset.text})});
+    if(!j.ok){ box.innerHTML=`<div class="out-msg err">Render failed: ${esc(j.error)}</div>`; return; }
+    const m=j.data.media||{};
+    if(!m.video){ box.innerHTML=`<div class="out-msg err">${esc(m.error||'no video produced')}</div>`; return; }
+    box.innerHTML=`<video controls style="width:100%;aspect-ratio:9/16;max-height:520px;object-fit:cover;border-radius:14px;background:#000" src="${esc(m.preview_url)}"></video>
+      <div class="sub" style="margin-top:8px">✓ ${m.segments.length} cards · ${m.audio?'with narration':'silent video'} · preview saved to data/media</div>
+      <div class="sub">To publish, assign this account to the agent and approve the next draft — or reconnect TikTok/YouTube and use approve.</div>`;
+  }catch(e){ box.innerHTML=`<div class="out-msg err">Render failed: ${esc(e.message||e)}</div>`; }
+  rb.disabled=false; rb.textContent='▶ Render media (card + narrated video)';
+}
+
+/* ---------------- settings ---------------- */
+function glassPresetName(){
+  const t=SET.theme||{};
+  const b=parseFloat(t.glassBlur), o=parseFloat(t.glassOpacity);
+  if(o>=0.92 && b<=3) return 'none';
+  if(o>=0.86 && b<=7) return 'subtle';
+  if(b<=3) return 'crisp';
+  return 'frosted';
+}
+function syncSettingsUI(){
+  const t=SET.theme, a=SET.ai, g=SET.agent, pl=SET.platforms;
+  $('setBlur').value=parseFloat(t.glassBlur); $('setBlur').nextElementSibling.textContent=t.glassBlur;
+  $('setOp').value=parseFloat(t.glassOpacity); $('setOp').nextElementSibling.textContent=parseFloat(t.glassOpacity).toFixed(2);
+  $('setRad').value=parseFloat(t.radius); $('setRad').nextElementSibling.textContent=t.radius;
+  $('setBorder').value=parseFloat(t.borderOpacity); $('setBorder').nextElementSibling.textContent=t.borderOpacity;
+  $('setGlow').checked=t.glow!==false;
+  $('setFont').value=t.font||'Inter';
+  $('aiTemp').value=a.temperature; $('aiTemp').nextElementSibling.textContent=a.temperature;
+  $('aiTokens').value=a.maxTokens; $('aiTokens').nextElementSibling.textContent=a.maxTokens;
+  $('aiProvider').value=a.provider;
+  $('aiReasoning').value=a.reasoning||'low';
+  $('aiFallback').value=(a.fallbackModels||[]).join(', ');
+  loadKeysHint();
+  $('agEnabled').checked = !!g.enabled;
+  const eh=$('agEnabledHint'); if(eh) eh.textContent = g.enabled ? 'Autonomous is enabled — cycles & Start allowed.' : 'When off, the agent never runs in background and Start/Cycles are blocked.';
+  $('agNiche').value=g.defaultNiche;
+  $('agFocus').value=g.focus||'';
+  $('agVoice').value=SET.media?.voice != null ? SET.media.voice : (g.voice||'');
+  $('agMedia').checked=SET.media?.enabled !== false;
+  $('agLimit').value=g.dailyPostLimit; $('agLimit').nextElementSibling.textContent=g.dailyPostLimit;
+  $('agInterval').value=g.analysisIntervalHours; $('agInterval').nextElementSibling.textContent=g.analysisIntervalHours;
+  $('agAuto').checked=g.autoPost;
+  $('agHuman').checked=g.humanApproval;
+  document.querySelectorAll('[data-key="theme.accent"] .sw').forEach(s=>s.classList.toggle('on', s.dataset.v===t.accent));
+  document.querySelectorAll('[data-key="theme.bg"] .bgp').forEach(s=>s.classList.toggle('on', s.dataset.v===t.bg));
+  document.querySelectorAll('[data-key="theme.density"] .bgp').forEach(s=>s.classList.toggle('on', s.dataset.v===t.density));
+  const preset=glassPresetName();
+  document.querySelectorAll('[data-key="glass"] .bgp').forEach(s=>s.classList.toggle('on', s.dataset.v===preset));
+  buildWidgetList(); buildPlatList(); loadModels(true);
+}
+function setGlass(kind){
+  const map={
+    frosted:{blur:14,op:.78,border:.3},
+    subtle:{blur:6,op:.9,border:.3},
+    crisp:{blur:0,op:.9,border:.35},
+    none:{blur:0,op:.97,border:.4}
+  };
+  const v=map[kind]||map.subtle;
+  $('setBlur').value=v.blur; $('setBlur').nextElementSibling.textContent=v.blur+'px';
+  $('setOp').value=v.op; $('setOp').nextElementSibling.textContent=v.op.toFixed(2);
+  $('setBorder').value=v.border; $('setBorder').nextElementSibling.textContent=v.border;
+  const r=document.documentElement.style;
+  r.setProperty('--blur',v.blur+'px'); r.setProperty('--glass-op',v.op); r.setProperty('--border-op',v.border);
+  document.querySelectorAll('[data-key="glass"] .bgp').forEach(s=>s.classList.toggle('on', s.dataset.v===kind));
+}
+async function loadKeysHint(){
+  const h=$('keysHint'); if(!h) return;
+  try{
+    const j=await api('/api/keys'); if(!j.ok) return;
+    const k=j.data.keys;
+    const names={NVIDIA_API_KEY:'NVIDIA',OPENROUTER_API_KEY:'OpenRouter',OPENAI_API_KEY:'OpenAI',ANTHROPIC_API_KEY:'Anthropic'};
+    h.textContent=Object.entries(names).map(([kk,label])=>`${label}: ${k[kk].set?'✓ '+k[kk].hint:'—'}`).join(' · ');
+  }catch(e){}
+}
+async function saveKeys(){
+  const vals={NVIDIA_API_KEY:$('keyNvidia').value,OPENROUTER_API_KEY:$('keyOpenrouter').value,OPENAI_API_KEY:$('keyOpenai').value,ANTHROPIC_API_KEY:$('keyAnthropic').value};
+  Object.keys(vals).forEach(k=>{ if(!vals[k]||!vals[k].trim()) delete vals[k]; });
+  if(!Object.keys(vals).length){ toast('Paste at least one key first','err'); return; }
+  const j=await api('/api/keys',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({values:vals})});
+  if(!j.ok){ toast(j.error,'err'); return; }
+  ['keyNvidia','keyOpenrouter','keyOpenai','keyAnthropic'].forEach(id=>{ $(id).value=''; });
+  toast('Keys saved: '+j.data.saved.join(', ')+' — active: '+j.data.provider,'ok');
+  loadKeysHint(); refreshAll();
+}
+async function testModels(){
+  const box=$('aiTest'); box.innerHTML='<span class="spin" style="align-self:flex-start"></span> pinging models…';
+  const primary=$('aiModel').value||'';
+  const fb=$('aiFallback').value.split(',').map(s=>s.trim()).filter(Boolean);
+  const list=[primary,...fb].filter(Boolean);
+  if(!list.length){ box.innerHTML=''; return; }
+  const prov=$('aiProvider').value||'nvidia';
+  const j=await api('/api/ai/test',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({models:list,provider:prov})});
+  if(!j.ok){ box.innerHTML=`<div class="out-msg err">Test failed: ${esc(j.error)}</div>`; return; }
+  box.innerHTML=j.data.results.map(r=>{
+    const good=r.ok;
+    return `<div style="display:flex;align-items:center;gap:8px;font-size:11.5px">
+      <span style="width:16px;color:${good?'#22c55e':'#f87171'}">${good?'✓':'✕'}</span>
+      <b style="flex:1;overflow:hidden;text-overflow:ellipsis">${esc(r.model)}</b>
+      <span style="color:#8b93b8">${good? r.latency+'s' : esc((r.error||'err').slice(0,46))}</span></div>`;
+  }).join('');
+}
+function buildWidgetList(){
+  const w=SET.widgets, v=w.visible;
+  const order=w.order||[]; const box=$('widgetList');
+  box.innerHTML = order.map((id,i)=>`
+    <div class="wigh">
+      <label class="tg"><input type="checkbox" ${v[id]?'checked':''} onchange="setWidgetVis('${id}',this.checked)">
+        <span class="sw"></span></label>
+      <b>${id}</b>
+      <button class="mv" ${i===0?'disabled':''} onclick="moveWidget('${id}',-1)">▲</button>
+      <button class="mv" ${i===order.length-1?'disabled':''} onclick="moveWidget('${id}',1)">▼</button>
+    </div>`).join('');
+}
+function buildPlatList(){
+  const pl=SET.platforms; const box=$('platList');
+  box.innerHTML = Object.entries(pl).sort((a,b)=>a[1].priority-b[1].priority).map(([name,p])=>`
+    <div class="wigh">
+      <label class="tg"><input type="checkbox" ${p.enabled?'checked':''} onchange="setPlat('${name}')"><span class="sw"></span></label>
+      <b>${name}</b><span style="font-size:11px;color:#8b93b8">priority ${p.priority}</span>
+    </div>`).join('');
+}
+function setWidgetVis(id,on){ SET.widgets.visible[id]=on; }
+function setPlat(p){ SET.platforms[p].enabled=!SET.platforms[p].enabled; buildPlatList(); }
+function moveWidget(id,dir){
+  const o=SET.widgets.order; const i=o.indexOf(id), j=i+dir;
+  if(j<0||j>=o.length) return; [o[i],o[j]]=[o[j],o[i]]; buildWidgetList();
+}
+async function loadModels(silent){
+  const sel=$('aiModel'); if(!sel) return;
+  const keep = SET && SET.ai && SET.ai.model;
+  const prov = ($('aiProvider') && $('aiProvider').value) || (SET && SET.ai && SET.ai.provider) || 'nvidia';
+  // OpenRouter: curated free-friendly list + keep custom value (full catalog is huge)
+  if(prov==='openrouter'){
+    const curated=['openai/gpt-4o-mini','anthropic/claude-3.5-haiku','meta-llama/llama-3.1-8b-instruct:free','meta-llama/llama-3.3-70b-instruct:free','google/gemini-flash-1.5-8b','mistralai/mistral-7b-instruct:free','deepseek/deepseek-chat-v3-0324:free','qwen/qwen-2.5-7b-instruct:free'];
+    sel.innerHTML='';
+    curated.forEach(m=>{ const o=document.createElement('option'); o.value=m; o.textContent=m; sel.appendChild(o); });
+    if(keep && ![...sel.options].some(o=>o.value===keep)){ const o=document.createElement('option'); o.value=keep; o.textContent=keep+' (custom)'; sel.appendChild(o); }
+    sel.value=keep||'openai/gpt-4o-mini';
+    return;
+  }
+  try{
+    const j=await api('/api/models');
+    if(j.ok){ sel.innerHTML=''; j.data.models.forEach(m=>{
+      const o=document.createElement('option'); o.value=m; o.textContent=m; sel.appendChild(o); });
+      sel.value = (keep && j.data.models.includes(keep)) ? keep : (j.data.models.includes('meta/muse-glimmer-30b') ? 'meta/muse-glimmer-30b' : (sel.options[0] && sel.options[0].value) || '');
+      if(!sel.value && keep){ const o=document.createElement('option'); o.value=keep; o.textContent=keep+' (custom)'; sel.appendChild(o); sel.value=keep; }
+    } else if(!silent) sel.innerHTML=`<option>${'error: '+j.error}</option>`;
+  }catch(e){ if(!silent) sel.innerHTML='<option>models unavailable</option>'; }
+}
+function saveSettings(){
+  const t=SET.theme, a=SET.ai, g=SET.agent;
+  t.accent = (document.querySelector('[data-key="theme.accent"] .sw.on')||{}).dataset?.v||t.accent;
+  t.bg = (document.querySelector('[data-key="theme.bg"] .bgp.on')||{}).dataset?.v||t.bg;
+  t.density = (document.querySelector('[data-key="theme.density"] .bgp.on')||{}).dataset?.v||t.density;
+  t.glassBlur=$('setBlur').value+'px'; t.glassOpacity=parseFloat($('setOp').value);
+  t.radius=$('setRad').value+'px'; t.borderOpacity=parseFloat($('setBorder').value);
+  t.glow=$('setGlow').checked; t.font=$('setFont').value;
+  a.provider=$('aiProvider').value; a.model=$('aiModel').value;
+  a.reasoning=$('aiReasoning').value||'low';
+  a.fallbackModels=$('aiFallback').value.split(',').map(s=>s.trim()).filter(Boolean);
+  a.temperature=parseFloat($('aiTemp').value); a.maxTokens=parseInt($('aiTokens').value);
+  g.enabled=$('agEnabled').checked;
+  g.defaultNiche=$('agNiche').value; g.dailyPostLimit=parseInt($('agLimit').value);
+  g.analysisIntervalHours=parseInt($('agInterval').value);
+  g.autoPost=$('agAuto').checked; g.humanApproval=$('agHuman').checked;
+  g.focus=$('agFocus').value||null; g.voice=$('agVoice').value;
+  SET.media={...SET.media, enabled:$('agMedia').checked, voice:$('agVoice').value};
+  api('/api/settings',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(SET)})
+    .then(j=>{ if(j.ok){ SET=j.data.settings; applyTheme(SET); refreshAll(); closeSettings(); }
+      else alert('Save failed: '+j.error); })
+    .catch(()=>alert('Network error'));
+}
+function openSettings(){ $('ovl').classList.add('show'); $('panel').classList.add('open'); syncSettingsUI(); }
+function closeSettings(){ $('ovl').classList.remove('show'); $('panel').classList.remove('open'); }
+
+/* live sliders */
+['setBlur','setOp','setRad','setBorder'].forEach(id=>{
+  document.addEventListener('input',e=>{
+    if(e.target.id===id){ const v=e.target.value+(id==='setOp'||id==='setBorder'?'':''); 
+      e.target.nextElementSibling.textContent = id==='setOp'?parseFloat(v): id==='setBorder'?v: v+(id==='setBlur'?'px':'px');
+      if(id==='setBlur') document.documentElement.style.setProperty('--blur',v+'px');
+      if(id==='setOp') document.documentElement.style.setProperty('--glass-op',parseFloat(v));
+      if(id==='setRad') document.documentElement.style.setProperty('--radius',v+'px');
+      if(id==='setBorder') document.documentElement.style.setProperty('--border-op',parseFloat(v));
+    }
+  });
+});
+['aiTemp','aiTokens','agLimit','agInterval'].forEach(id=>{
+  document.addEventListener('input',e=>{ if(e.target.id===id) e.target.nextElementSibling.textContent=e.target.value; });
+});
+
+/* swatch / preset pickers */
+document.addEventListener('click',e=>{
+  if(e.target.classList.contains('sw')){ e.target.parentNode.querySelectorAll('.sw').forEach(s=>s.classList.remove('on')); e.target.classList.add('on'); 
+    document.documentElement.style.setProperty('--accent', e.target.dataset.v); }
+  if(e.target.classList.contains('bgp')){ const key=e.target.parentNode.dataset.key; e.target.parentNode.querySelectorAll('.bgp').forEach(s=>s.classList.remove('on')); e.target.classList.add('on');
+    if(key==='theme.bg') document.body.dataset.bg=e.target.dataset.v; }
+});
+document.addEventListener('change',e=>{
+  if(e.target.id==='setGlow') document.body.dataset.glow=String(e.target.checked);
+});
+
+/* --- GodEye Alive Tier 1 --- */
+function setGodEye(state){
+  const el=document.getElementById('godEye');
+  if(!el) return;
+  el.classList.remove('listening','speaking');
+  if(state==='listening') el.classList.add('listening');
+  if(state==='speaking') el.classList.add('speaking');
+  const dot=document.getElementById('voiceDot');
+  const lbl=document.getElementById('voiceLabel');
+  const wave=document.getElementById('voiceWave');
+  if(!dot||!lbl||!wave) return;
+  if(state==='listening'){ dot.style.background='#22c55e'; dot.style.boxShadow='0 0 10px #22c55e'; wave.style.display='inline-flex'; }
+  else if(state==='speaking'){ dot.style.background='var(--accent2)'; dot.style.boxShadow='0 0 10px var(--accent2)'; wave.style.display='inline-flex'; }
+  else { dot.style.background = voiceOn ? '#22c55e' : '#555'; wave.style.display='none'; if(lbl) lbl.textContent = voiceOn ? 'Voice: on' : 'Voice: off'; }
+}
+let voiceOn=false;
+let recog=null;
+let liveTimer=null;
+let lastSnapshot='';
+function toggleVoice(){
+  voiceOn=!voiceOn;
+  const lbl=document.getElementById('voiceLabel');
+  if(lbl) lbl.textContent = voiceOn ? 'Voice: on — click mic to speak' : 'Voice: off';
+  setGodEye(voiceOn?'idle':'idle');
+  if(voiceOn) startListening();
+  else stopListening();
+}
+function startListening(){
+  const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+  if(!SR){ alert('Voice recognition not supported in this browser. Use Chrome/Edge. Text chat still works.'); voiceOn=false; return; }
+  if(recog) try{recog.stop();}catch(e){}
+  recog=new SR();
+  recog.lang='en-US'; recog.interimResults=false; recog.maxAlternatives=1;
+  recog.onstart=()=>{ setGodEye('listening'); document.getElementById('voiceLabel').textContent='Listening… speak now'; };
+  recog.onend=()=>{
+    if(voiceOn && document.visibilityState==='visible'){
+      try{ recog.start(); }catch(e){ setGodEye('idle'); }
+    } else setGodEye('idle');
+  };
+  recog.onerror=(e)=>{
+    if(e.error==='not-allowed') { alert('Microphone blocked — allow mic in browser site settings.'); voiceOn=false; setGodEye('idle'); }
+  };
+  recog.onresult=(e)=>{
+    const t=(e.results[0] && e.results[0][0] && e.results[0][0].transcript)||'';
+    if(t.trim()){
+      // ensure Agent view visible so bub appears
+      if(document.getElementById('view-agent').style.display==='none') switchView('agent');
+      setTimeout(()=>askAgent(t.trim()), 120);
+    }
+  };
+  try{ recog.start(); }catch(e){}
+}
+function stopListening(){
+  if(recog) try{ recog.stop(); recog=null; }catch(e){}
+  try{ speechSynthesis.cancel(); }catch(e){}
+  setGodEye('idle');
+}
+// iris follows cursor (subtle, inside eye bounds)
+(function eyeTrack(){
+  const iris=document.getElementById('eyeIris');
+  const pupil=document.getElementById('eyePupil');
+  const eye=document.getElementById('godEye');
+  if(!iris||!pupil||!eye) return;
+  let mx=20,my=20, raf=null;
+  document.addEventListener('mousemove', e=>{
+    const r=eye.getBoundingClientRect();
+    const cx=r.left+r.width/2, cy=r.top+r.height/2;
+    const dx=(e.clientX-cx)/r.width, dy=(e.clientY-cy)/r.height;
+    mx = 20 + Math.max(-3.2, Math.min(3.2, dx*3.2));
+    my = 20 + Math.max(-2.4, Math.min(2.4, dy*2.4));
+    if(!raf) raf=requestAnimationFrame(()=>{
+      iris.setAttribute('cx', mx.toFixed(2));
+      iris.setAttribute('cy', my.toFixed(2));
+      pupil.setAttribute('cx', mx.toFixed(2));
+      pupil.setAttribute('cy', my.toFixed(2));
+      // highlight follows slightly
+      const hl=document.querySelector('#godEye circle[opacity="0.85"]');
+      if(hl){ hl.setAttribute('cx', (mx-2.5).toFixed(2)); hl.setAttribute('cy', (my-2.8).toFixed(2)); }
+      raf=null;
+    });
+  });
+  eye.addEventListener('mouseenter', ()=>{ iris.setAttribute('r','10'); });
+  eye.addEventListener('mouseleave', ()=>{ iris.setAttribute('r','9'); });
+})();
+function startLive(){
+  if(liveTimer) clearInterval(liveTimer);
+  liveTimer=setInterval(async ()=>{
+    try{
+      const j=await api('/api/status');
+      const snap=JSON.stringify(j.data);
+      if(snap!==lastSnapshot){
+        if(lastSnapshot) pulseLive();
+        lastSnapshot=snap;
+        drawOverview(j.data);
+      }
+    }catch(e){}
+  }, 5500);
+}
+function pulseLive(){
+  document.querySelectorAll('#view-overview .card').forEach(c=>{
+    c.classList.remove('live'); void c.offsetWidth; c.classList.add('live');
+    setTimeout(()=>c.classList.remove('live'), 1200);
+  });
+  const dot=document.querySelector('.side-foot .dot');
+  if(dot){ dot.style.boxShadow='0 0 14px #22c55e, 0 0 28px #22c55e'; setTimeout(()=>dot.style.boxShadow='0 0 10px #22c55e', 700); }
+}
+
+/* ---- new views: projects / calendar / inbox / alerts ---- */
+async function renderProjects(){
+  const el=$('view-projects');
+  el.innerHTML=`<div class="card wide glass"><h3><span class="h-ico">▤</span>Projects — tabs on everything</h3>
+  <div class="row2"><input class="input" id="pjName" placeholder="New project name (e.g. Fitness channel)"><input class="input" id="pjNiche" placeholder="Niche (optional)"></div>
+  <div style="display:flex;gap:8px;margin-top:10px;flex-wrap:wrap"><button class="btn sm" onclick="createProject()">+ Add project</button><button class="btn sm ghost" onclick="loadDigest()">Daily digest</button></div>
+  <div id="digestOut"></div><div class="plist" id="projList"><div class="sub">loading…</div></div></div>`;
+  try{
+    const j=await api('/api/projects'); const arr=j.data.projects||[];
+    $('projList').innerHTML=arr.length?arr.map(p=>`<div class="prow2"><b>${esc(p.name)}</b> <span class="sub">${esc(p.status)} · ${esc(p.niche||'')} · ${(p.tasks||[]).filter(t=>!t.done).length} open / ${(p.tasks||[]).length}</span>
+    <div class="sub">${esc(p.description||'')}</div>
+    <div style="display:flex;gap:6px;margin-top:8px;flex-wrap:wrap"><input class="input" id="tk-${p.id}" placeholder="+ task" style="max-width:220px"><button class="btn sm ghost" onclick="addTask('${p.id}')">Add</button><button class="btn sm ghost" onclick="delProject('${p.id}')">Delete</button></div>
+    <div style="margin-top:6px">${(p.tasks||[]).map(t=>`<label style="display:flex;gap:8px;font-size:12.5px;margin:4px 0"><input type="checkbox" ${t.done?'checked':''} onchange="toggleTask('${p.id}','${t.id}')"> <span style="${t.done?'text-decoration:line-through;opacity:.6':''}">${esc(t.title)}</span></label>`).join('')}</div></div>`).join(''):'<div class="sub">No projects yet — add your first above.</div>';
+  }catch(e){ $('projList').innerHTML='<div class="sub">load failed</div>'; }
+}
+async function createProject(){ const n=$('pjName').value.trim(); if(!n) return toast('Name required','err'); await api('/api/projects',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({name:n,niche:$('pjNiche').value})}); renderProjects(); }
+async function delProject(id){ await api('/api/projects/'+id,{method:'DELETE'}); renderProjects(); }
+async function addTask(pid){ const v=document.getElementById('tk-'+pid).value.trim(); if(!v) return; await api('/api/projects/'+pid+'/tasks',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({title:v})}); renderProjects(); }
+async function toggleTask(pid,tid){ await api('/api/projects/'+pid+'/tasks',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({toggle:true,task_id:tid})}); renderProjects(); }
+async function loadDigest(){ const j=await api('/api/digest'); const d=j.data.digest; $('digestOut').innerHTML=`<div class="out-msg ok">📊 ${d.projects_active}/${d.projects_total} active · ${d.open_tasks} open tasks · ${d.scheduled_total} scheduled · ${d.unread_notifications} unread alerts</div>`; }
+async function renderCalendar(){
+  const el=$('view-calendar');
+  el.innerHTML=`<div class="card wide glass"><h3><span class="h-ico">📅</span>Content calendar + retry queue</h3>
+  <div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn sm" onclick="renderCalendar()">Refresh</button><button class="btn sm ghost" onclick="runRetry()">Run retry queue</button></div>
+  <div class="cal-grid" id="calGrid"><div class="sub">loading…</div></div><h3 style="margin-top:14px">Retry queue</h3><div class="plist" id="retryList"></div>
+  <h3 style="margin-top:14px">Log income / expense (persistent)</h3><div class="row2"><select id="txType"><option value="income">income</option><option value="expense">expense</option></select><input class="input" id="txAmt" type="number" placeholder="amount"></div>
+  <div class="row2" style="margin-top:8px"><input class="input" id="txCat" placeholder="category (ad_revenue, software…)"><input class="input" id="txDesc" placeholder="description"></div>
+  <div style="margin-top:8px"><button class="btn sm" onclick="logTx()">Save transaction</button></div></div>`;
+  try{
+    const j=await api('/api/schedule'); const items=(j.data.scheduled||[]).slice(-28);
+    const byDay={}; items.forEach(s=>{ const d=(s.post_time||s.created_at||'').slice(0,10); (byDay[d]=byDay[d]||[]).push(s); });
+    const days=Object.keys(byDay).sort().slice(-14);
+    $('calGrid').innerHTML=days.length?days.map(d=>`<div class="cal-cell"><b>${d}</b>${byDay[d].slice(0,3).map(s=>`<div>• ${esc((s.content||{}).platform||'?')}: ${esc(((s.content||{}).text||(s.content||{}).title||'').slice(0,40))} <i>(${esc(s.status)})</i></div>`).join('')}</div>`).join(''):'<div class="sub">Nothing scheduled yet — schedule from Content Studio.</div>';
+    const r=await api('/api/retry'); $('retryList').innerHTML=(r.data.queue||[]).length?(r.data.queue||[]).slice(0,10).map(q=>`<div class="irow"><b>${esc(q.platform)}</b> attempts=${q.attempts} status=${esc(q.status)}<div class="sub">${esc(q.last_error||'')}</div></div>`).join(''):'<div class="sub">Retry queue empty ✓</div>';
+  }catch(e){}
+}
+async function runRetry(){ const j=await api('/api/retry/run',{method:'POST'}); toast(`Retry: ${j.data.recovered} recovered, ${j.data.failed} failed`,'info'); renderCalendar(); }
+async function logTx(){ const body={type:$('txType').value,amount:parseFloat($('txAmt').value||'0'),category:$('txCat').value||'general',description:$('txDesc').value}; const j=await api('/api/tax/log',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)}); if(j.ok) toast('Transaction saved','ok'); else toast(j.error,'err'); }
+async function renderInbox(){
+  const el=$('view-inbox');
+  el.innerHTML=`<div class="card wide glass"><h3><span class="h-ico">✉</span>Unified inbox — comments & mentions</h3>
+  <div style="display:flex;gap:8px"><button class="btn sm" onclick="pollInbox()">Poll now</button></div><div class="ilist" id="inboxList"><div class="sub">loading…</div></div></div>`;
+  try{
+    const j=await api('/api/inbox'); const arr=j.data.inbox||[];
+    $('inboxList').innerHTML=arr.length?arr.map(m=>`<div class="irow"><b>[${esc(m.platform)}] ${esc(m.author)}</b> <span class="sub">${esc(m.ts||'')} · ${esc(m.status)}</span><div style="margin:6px 0">${esc(m.text)}</div>
+    ${m.suggested_reply?`<div class="out-msg">Draft: ${esc(m.suggested_reply)}</div>`:''}
+    <div style="display:flex;gap:6px;margin-top:6px;flex-wrap:wrap"><button class="btn sm ghost" onclick="suggestReply('${m.id}')">Draft reply</button><button class="btn sm ghost" onclick="markInbox('${m.id}','replied')">Done</button><button class="btn sm ghost" onclick="markInbox('${m.id}','dismissed')">Dismiss</button></div></div>`).join(''):'<div class="sub">Inbox empty — click Poll now.</div>';
+  }catch(e){}
+}
+async function pollInbox(){ await api('/api/inbox/poll',{method:'POST'}); renderInbox(); refreshBadges(); }
+async function suggestReply(id){ const j=await api('/api/inbox'); const m=(j.data.inbox||[]).find(x=>x.id===id); if(!m) return; const s=await api('/api/inbox/suggest',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({text:m.text,platform:m.platform})}); await api('/api/inbox/'+id,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({status:m.status,reply:s.data.reply})}); renderInbox(); }
+async function markInbox(id,st){ await api('/api/inbox/'+id,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({status:st})}); renderInbox(); refreshBadges(); }
+async function renderNotifs(){
+  const el=$('view-notifs');
+  el.innerHTML=`<div class="card wide glass"><h3><span class="h-ico">🔔</span>Alerts — failures, approvals, payouts</h3>
+  <div class="sub">Email alerts: set SMTP_HOST + ALERT_EMAIL in .env (see .env.example). Important errors auto-email.</div>
+  <div style="display:flex;gap:8px;margin-top:8px"><button class="btn sm ghost" onclick="markAllRead()">Mark all read</button><button class="btn sm ghost" onclick="testNotif()">Send test</button></div>
+  <div class="nlist" id="notifList"><div class="sub">loading…</div></div></div>`;
+  try{
+    const j=await api('/api/notifications'); const arr=j.data.notifications||[];
+    $('notifList').innerHTML=arr.length?arr.map(n=>`<div class="nrow" style="${n.read?'opacity:.6':''}"><b>${esc(n.title)}</b> <span class="sub">${esc(n.kind)} · ${esc(n.level)} · ${esc(n.ts||'')}</span><div>${esc(n.message||'')}</div></div>`).join(''):'<div class="sub">No alerts ✓</div>';
+  }catch(e){}
+}
+async function markAllRead(){ await api('/api/notifications/read',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({all:true})}); renderNotifs(); refreshBadges(); }
+async function testNotif(){ await api('/api/notifications/test',{method:'POST'}); renderNotifs(); refreshBadges(); }
+async function refreshBadges(){
+  try{
+    const n=await api('/api/notifications'); const u=n.data.unread||0;
+    const b=$('notifBadge'); if(b){ b.style.display=u?'':'none'; b.textContent=u; }
+    const ib=await api('/api/inbox?status=new'); const c=(ib.data.inbox||[]).length;
+    const b2=$('inboxBadge'); if(b2){ b2.style.display=c?'':'none'; b2.textContent=c; }
+  }catch(e){}
+}
+setInterval(refreshBadges, 15000);
+
+/* init */
+document.querySelectorAll('.nav button').forEach(b=>b.onclick=()=>switchView(b.dataset.view));
+(async function init(){
+  try{
+    const j = await api('/api/settings');
+    SET = j.data.settings;
+    applyTheme(SET);
+    refreshAll();
+    lastSnapshot='';
+    startLive();
+    refreshBadges();
+    // warm voices
+    if('speechSynthesis' in window) speechSynthesis.getVoices();
+  }catch(e){ document.body.innerHTML='<div style="padding:40px;font-family:monospace">Cannot reach agent API. Start it with: python dashboard_app.py</div>'; }
+})();
+</script>
+</body>
+</html>

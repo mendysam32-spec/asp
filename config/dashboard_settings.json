@@ -1,0 +1,127 @@
+{
+  "theme": {
+    "accent": "#00e5ff",
+    "accent2": "#00d2ff",
+    "glassBlur": "6px",
+    "glassOpacity": 0.9,
+    "radius": 20,
+    "borderOpacity": 0.3,
+    "font": "Inter",
+    "bg": "aurora",
+    "glow": true,
+    "density": "comfortable",
+    "powerAvatar": true
+  },
+  "widgets": {
+    "order": [
+      "status",
+      "platforms",
+      "monetization",
+      "ai",
+      "tax",
+      "posts",
+      "activity"
+    ],
+    "visible": {
+      "status": true,
+      "platforms": true,
+      "monetization": true,
+      "ai": true,
+      "tax": true,
+      "posts": true,
+      "activity": true
+    }
+  },
+  "ai": {
+    "provider": "nvidia",
+    "model": "meta/muse-glimmer-30b",
+    "fallbackModels": [],
+    "temperature": 0.8,
+    "maxTokens": 1000,
+    "reasoning": "low"
+  },
+  "agent": {
+    "enabled": false,
+    "dailyPostLimit": 5,
+    "autoPost": false,
+    "humanApproval": true,
+    "defaultNiche": "AI & Technology",
+    "analysisIntervalHours": 6,
+    "postingTimes": [
+      "09:00",
+      "12:00",
+      "15:00",
+      "18:00",
+      "21:00"
+    ],
+    "assignments": {
+      "youtube": {
+        "assigned": false,
+        "active": false,
+        "autoPost": false,
+        "humanApproval": true,
+        "dailyPostLimit": 0,
+        "niche": "",
+        "contentTypes": [
+          "text"
+        ],
+        "youtubePrivacy": "unlisted",
+        "updated": "2026-09-13T06:00:31.359136",
+        "since": "2026-09-10T22:29:31.303013",
+        "media": true
+      },
+      "instagram": {
+        "assigned": false,
+        "active": false,
+        "autoPost": false,
+        "humanApproval": false,
+        "dailyPostLimit": 0,
+        "niche": "",
+        "contentTypes": [
+          "story"
+        ],
+        "media": true,
+        "updated": "2026-09-13T06:00:42.290121"
+      },
+      "tiktok": {
+        "assigned": true,
+        "active": false,
+        "autoPost": true,
+        "humanApproval": false,
+        "dailyPostLimit": 4,
+        "niche": "",
+        "contentTypes": [
+          "text"
+        ],
+        "media": true,
+        "updated": "2026-10-11T10:21:47.401432",
+        "since": "2026-10-11T10:21:36.523158"
+      }
+    },
+    "focus": null,
+    "voice": "en-US-JennyNeural",
+    "checklist": {}
+  },
+  "media": {
+    "enabled": true,
+    "hostImagesDir": ""
+  },
+  "platforms": {
+    "tiktok": {
+      "enabled": true,
+      "priority": 1
+    },
+    "youtube": {
+      "enabled": true,
+      "priority": 2
+    },
+    "x": {
+      "enabled": true,
+      "priority": 3
+    },
+    "instagram": {
+      "enabled": true,
+      "priority": 4
+    }
+  }
+}
