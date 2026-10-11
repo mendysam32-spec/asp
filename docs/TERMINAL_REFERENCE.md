@@ -1,4 +1,4 @@
-# GodEye Terminal — No-Code Command Reference
+# ASP Terminal — No-Code Command Reference
 
 > Dashboard → **Terminal** (▣)  or  `POST /api/terminal/exec` → execute any agent request without writing code.
 > Style: `cmd` / `powershell` — type `help` and press Enter. History with ↑ / ↓, `clear` to wipe.

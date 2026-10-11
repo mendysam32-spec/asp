@@ -216,7 +216,7 @@ class LLMProvider:
                 timeout=180,
                 default_headers={
                     "HTTP-Referer": os.getenv("OPENROUTER_REFERER", "http://localhost:5001"),
-                    "X-Title": os.getenv("OPENROUTER_TITLE", "GodEye AI Agent"),
+                    "X-Title": os.getenv("OPENROUTER_TITLE", "ASP AI Agent"),
                 },
             )
             kwargs = dict(

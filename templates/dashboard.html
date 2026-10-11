@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>GodEye — Neural Console</title>
+<title>ASP — Neural Console</title>
 <style>
 :root{
   --accent:#6c5ce7; --accent2:#00d2ff;
@@ -240,8 +240,8 @@ body[data-density="spacious"]{--pad:26px}
 <div class="layout">
   <aside class="sidebar glass">
     <div class="logo">
-      <div class="god-eye" id="godEye" title="GodEye is watching">
-        <svg width="40" height="40" viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg" aria-label="GodEye logo">
+      <div class="god-eye" id="godEye" title="ASP is watching">
+        <svg width="40" height="40" viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg" aria-label="ASP logo">
           <defs>
             <linearGradient id="geye" x1="0" y1="0" x2="40" y2="40" gradientUnits="userSpaceOnUse">
               <stop stop-color="var(--accent)"/><stop offset="1" stop-color="var(--accent2)"/>
@@ -270,8 +270,8 @@ body[data-density="spacious"]{--pad:26px}
         </svg>
       </div>
       <div class="wt">
-        <b>GOD</b>
-        <p>Eye</p>
+        <b>ASP</b>
+        <p>Agent SP</p>
         <span>NEURAL CONSOLE</span>
       </div>
     </div>
@@ -298,7 +298,7 @@ body[data-density="spacious"]{--pad:26px}
       <button class="gearbtn" id="menuBtn" onclick="document.getElementById('mainNav').classList.toggle('open')" title="Menu">☰</button>
       <div><h1>Overview</h1><div class="crumbs" id="crumbs">Agent Control Center</div></div>
       <div class="sp">
-        <button class="chip" id="voiceBtn" onclick="toggleVoice()" title="Talk to GodEye — click to speak" style="cursor:pointer;gap:6px">
+        <button class="chip" id="voiceBtn" onclick="toggleVoice()" title="Talk to ASP — click to speak" style="cursor:pointer;gap:6px">
           <span id="voiceDot" style="width:8px;height:8px;border-radius:50%;background:#555;display:inline-block;box-shadow:0 0 0 2px rgba(255,255,255,0.08)"></span>
           <span id="voiceLabel">Voice: off</span>
           <span id="voiceWave" style="display:none;gap:2px;align-items:center"><i></i><i></i><i></i></span>
@@ -1292,14 +1292,14 @@ async function sendChat(prefill){
     speakText(d.text||'');
   }catch(e){
     if(feed.lastElementChild) feed.lastElementChild.remove();
-    feed.insertAdjacentHTML('beforeend',`<div class="bub ag">Network error — is GodEye online?</div>`);
+    feed.insertAdjacentHTML('beforeend',`<div class="bub ag">Network error — is ASP online?</div>`);
   }
   setGodEye('idle');
 }
 function exportChat(){
   const txt=CHAT_HIST.map(m=>`${m.role.toUpperCase()}: ${m.text}`).join('\n\n');
   const blob=new Blob([txt||'(empty)'],{type:'text/plain'});
-  const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download='godeye-chat.txt'; a.click();
+  const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download='asp-chat.txt'; a.click();
 }
 async function clearChat(){ CHAT_HIST=[]; drawChatHist(); await api('/api/chat/history',{method:'DELETE'}); }
 async function askAgent(prefill){ return sendChat(prefill); }
@@ -1469,12 +1469,12 @@ function renderTerminal(){
   <div class="card glass terminal wide">
     <div class="term-head">
       <span class="dot" style="background:#ff5f57"></span><span class="dot" style="background:#ffbd2e"></span><span class="dot" style="background:#28c940"></span>
-      <b style="margin-left:8px;font-size:12px;letter-spacing:.6px">GODEYE TERMINAL — no-code • type help</b>
+      <b style="margin-left:8px;font-size:12px;letter-spacing:.6px">ASP TERMINAL — no-code • type help</b>
       <span style="margin-left:auto;font-size:11px;color:#8b93b8">cmd / powershell style</span>
       <button class="btn sm ghost" onclick="termClear()">clear</button>
     </div>
-    <div class="term-out" id="termOut"><div class="term-row">GodEye Terminal v1 — type <b>help</b> for commands. Try: <b>status</b>, <b>publish bulk "your niche" --platforms tiktok,youtube</b>, <b>ask what should I post today?</b></div></div>
-    <div class="term-in"><span>GodEye&gt;</span><input id="termIn" placeholder="help | status | generate &quot;AI tips&quot; tiktok | publish bulk &quot;fitness&quot; --platforms tiktok,youtube | ask ..." autocomplete="off"></div>
+    <div class="term-out" id="termOut"><div class="term-row">ASP Terminal v1 — type <b>help</b> for commands. Try: <b>status</b>, <b>publish bulk "your niche" --platforms tiktok,youtube</b>, <b>ask what should I post today?</b></div></div>
+    <div class="term-in"><span>ASP&gt;</span><input id="termIn" placeholder="help | status | generate &quot;AI tips&quot; tiktok | publish bulk &quot;fitness&quot; --platforms tiktok,youtube | ask ..." autocomplete="off"></div>
   </div>
   <div class="card glass wide" style="padding:14px"><div class="sub">Tip: this terminal talks to <b>/api/terminal/exec</b> — whitelisted agent commands, natural language fallback via your AI provider. No shell access, no code needed.</div></div>`;
   $('view-terminal').style.display='';
@@ -1785,7 +1785,7 @@ document.addEventListener('change',e=>{
   if(e.target.id==='setGlow') document.body.dataset.glow=String(e.target.checked);
 });
 
-/* --- GodEye Alive Tier 1 --- */
+/* --- ASP Alive Tier 1 --- */
 function setGodEye(state){
   const el=document.getElementById('godEye');
   if(!el) return;

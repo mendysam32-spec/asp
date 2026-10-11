@@ -1,4 +1,4 @@
-"""GodEye - Agent Control Dashboard.
+"""ASP (Agent SP) - Agent Control Dashboard.
 
 Full-glass modern control center for the AI content agent.
 All customization is UI-driven and persisted to config/dashboard_settings.json.
@@ -233,7 +233,7 @@ async def chat_full():
     t0 = _t.time()
     # action presets expand the system prompt
     presets = {
-        "chat": "You are GodEye, the user's autonomous content assistant. Be helpful, concise, plain.",
+        "chat": "You are ASP, the user's autonomous content assistant. Be helpful, concise, plain.",
         "niche": "You are a niche research analyst. Give data-style reasoning, ranked opportunities, and next actions.",
         "content": "You are a professional content creator. Output platform-ready content with hook, body, CTA, hashtags.",
         "analyst": "You are a performance analyst. Reference the supplied account state and give 3 prioritized fixes.",
@@ -1004,7 +1004,7 @@ async def terminal_exec():
     registry = PlatformRegistry()
     try:
         if cmd in ("help", "?", "h"):
-            add("GodEye Terminal — no-code commands:")
+            add("ASP Terminal — no-code commands:")
             add("  help                          show this help")
             add("  status                        agent + AI + platform health")
             add("  accounts                      list accounts & connection")
@@ -1017,7 +1017,7 @@ async def terminal_exec():
             add("  enable on|off                 toggle autonomous master switch")
             add("  tax                           tax report")
             add("  monetize                      monetization eligibility")
-            add("  ask <your question>           chat with GodEye (LLM)")
+            add("  ask <your question>           chat with ASP (LLM)")
             add("  clear                         clear terminal")
             add("Examples:")
             add("  generate \"AI & Technology\" tiktok casual")
@@ -1553,5 +1553,5 @@ def media_thumb():
         return _err(str(e), 500)
 
 if __name__ == "__main__":
-    print("GodEye dashboard -> http://localhost:5001")
+    print("ASP dashboard -> http://localhost:5001")
     app.run(port=5001, debug=False)

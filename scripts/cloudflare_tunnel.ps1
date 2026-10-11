@@ -1,4 +1,4 @@
-# Cloudflare Tunnel - expose GodEye to your phone / laptop.
+# Cloudflare Tunnel - expose ASP to your phone / laptop.
 # Your PC stays the host (Flask + ffmpeg can't run on Workers/Pages).
 # Usage:  powershell -ExecutionPolicy Bypass -File scripts/cloudflare_tunnel.ps1
 # Then open the printed https://...trycloudflare.com/?pw=YOUR_PASSWORD on any device.

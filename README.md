@@ -1,4 +1,4 @@
-# AI Content Agent
+# ASP — Agent SP
 
 An AI agent that autonomously creates content, analyzes trends, manages social media accounts, tracks finances, and works toward monetization across platforms.
 
@@ -59,7 +59,7 @@ errors, the agent auto-fails over to the next provider and reports the switch.
 Full chat console lives in Agent → Chat (`POST /api/chat` with per-message
 provider/model/reasoning overrides, history, export).
 
-## Dashboard — No-Code Control Center (GodEye)
+## Dashboard — No-Code Control Center (ASP)
 
 **Start:** `python run_background.py` → http://localhost:5001  (health http://localhost:5001/api/health)
 
@@ -68,7 +68,7 @@ provider/model/reasoning overrides, history, export).
 | **Overview** | System status, AI engine, connections, monetization pulse |
 | **Content Studio** | Single generate + **1-Click: Post to All Chosen Accounts** — check `YouTube/TikTok/X/Instagram`, optional custom text, `⤴ Post — 1 Click` calls `POST /api/publish/bulk` (`dashboard_app.py:172`) |
 | **Accounts** | Connect/Disconnect + per-account assignment (`Agent works`, `Active`, `Auto-post`, `Hold for approval`, niche, limits) |
-| **Agent** | **Autonomous Master** `ON/OFF` (`POST /api/agent/enabled`, `config/settings_store.py:47`), loop `Start/Stop/Run now`, `Talk to GodEye` chat, approval queue |
+| **Agent** | **Autonomous Master** `ON/OFF` (`POST /api/agent/enabled`, `config/settings_store.py:47`), loop `Start/Stop/Run now`, `Talk to ASP` chat, approval queue |
 | **Monetization** | Eligibility + `Path to Payout` (`modules/agent_controller.py:304`) |
 | **Terminal** (▣) | No-code cmd/powershell — type `help` → executes `POST /api/terminal/exec` (`dashboard_app.py:489`). See `docs/TERMINAL_REFERENCE.md` |
 
@@ -108,7 +108,7 @@ See **`docs/INTERACTION_GUIDE.md`** (complete guide) and **`docs/TERMINAL_REFERE
 ai-agent/
 ├── main.py                    # Entry point & CLI
 ├── setup_credentials.py       # OAuth/API key wizard
-├── dashboard_app.py           # GodEye dashboard (Flask + Waitress)
+├── dashboard_app.py           # ASP dashboard (Flask + Waitress)
 ├── run_background.py          # Prod runner (Waitress 0.0.0.0:5001, health)
 ├── config/
 │   ├── settings.py            # Configuration (loads .env)
@@ -141,7 +141,7 @@ ai-agent/
 ├── scheduler/
 │   ├── task_scheduler.py      # Timed tasks
 │   └── autonomous_loop.py     # Continuous operation
-├── templates/dashboard.html   # GodEye UI (Overview/Content/Accounts/Agent/Money/Terminal)
+├── templates/dashboard.html   # ASP UI (Overview/Content/Accounts/Agent/Money/Terminal)
 ├── scripts/
 │   ├── install_service.ps1    # Win Task Scheduler (boot)
 │   ├── stop.ps1 / status.ps1  # Stop / health check

@@ -101,7 +101,7 @@ signal.signal(signal.SIGTERM, signal_handler)
 
 if __name__ == "__main__":
     log.info("="*50)
-    log.info("GodEye Agent - Background Service Starting")
+    log.info("ASP Agent - Background Service Starting")
     log.info(f"BASE_DIR: {BASE_DIR}")
     log.info(f"LOG_FILE: {LOG_FILE}")
     log.info("="*50)

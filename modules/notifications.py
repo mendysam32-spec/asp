@@ -48,7 +48,7 @@ def notify(kind: str, title: str, message: str = "", level: str = "info") -> Dic
     # best-effort email for important kinds
     if level in ("warn", "error") or kind in ("approval_needed", "digest", "threshold"):
         try:
-            _maybe_send_email(f"[GodEye {level.upper()}] {title}", f"{title}\n\n{message}\n\n{entry['ts']}")
+            _maybe_send_email(f"[ASP {level.upper()}] {title}", f"{title}\n\n{message}\n\n{entry['ts']}")
         except Exception:
             pass
     return entry
@@ -86,7 +86,7 @@ def _maybe_send_email(subject: str, body: str) -> bool:
     port = int(os.getenv("SMTP_PORT", "587"))
     user = os.getenv("SMTP_USER", "")
     pw = os.getenv("SMTP_PASS", "")
-    from_addr = os.getenv("SMTP_FROM", user or "godeye@localhost")
+    from_addr = os.getenv("SMTP_FROM", user or "asp@localhost")
     msg = MIMEText(body)
     msg["Subject"] = subject
     msg["From"] = from_addr

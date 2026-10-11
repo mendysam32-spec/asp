@@ -1,4 +1,4 @@
-# GodEye — Complete Interaction Guide
+# ASP — Complete Interaction Guide
 
 > How to control the AI Content Agent — dashboard, terminal, CLI, and API.  
 > Dashboard: http://localhost:5001  |  Health: http://localhost:5001/api/health  
@@ -15,7 +15,7 @@ All UI settings persist to `config/dashboard_settings.json` via `config/settings
 | **Overview** | `view-overview` + `GET /api/status` | `SYSTEM STATUS` (engine online), `AI ENGINE`, `PLATFORM CONNECTIONS`, `MONETIZATION PULSE`, `TAX & INCOME`, `ACTIVITY`, `PUBLISH QUEUE`. Buttons: `◈ Analyze niches` / `⟳ Refresh` / `✎ Generate content` |
 | **Content Studio** | `view-content` | Single generate + **Video Upload** (`POST /api/media/upload` → `data/media`, preview `/media/<file>`) + **1-Click Bulk** (see §2). Media render (`POST /api/media/render` → `modules/media_lab.py`) → preview video `9:16` + approval path |
 | **Accounts** | `view-platforms` + `GET /api/accounts` | Per-platform: `Enabled in agent`, `Connection`/`Payout`, `＋ Connect`/`－ Disconnect`, `AGENT ASSIGNMENT` toggles: `Agent works`, `Active`, `Auto-post`, `Hold for approval`, `Working niche`, `Content`, `Daily limit`, `YouTube privacy`. `mediaHint` for `tiktok`/`instagram` |
-| **Agent** | `view-agent` + `GET /api/accounts` + `GET /api/agent/drafts` | `AUTONOMOUS — MASTER` (`POST /api/agent/enabled`), `AUTONOMOUS LOOP` (`Start`/`Stop`/`Run`), `TALK TO GODEYE`, `NEEDS YOUR APPROVAL` with **filter + bulk Approve/Reject all** (`POST /api/agent/approve/bulk:335`) |
+| **Agent** | `view-agent` + `GET /api/accounts` + `GET /api/agent/drafts` | `AUTONOMOUS — MASTER` (`POST /api/agent/enabled`), `AUTONOMOUS LOOP` (`Start`/`Stop`/`Run`), `Talk to ASP`, `NEEDS YOUR APPROVAL` with **filter + bulk Approve/Reject all** (`POST /api/agent/approve/bulk:335`) |
 | **Monetization** | `view-money` + `GET /api/agent/path` | `ELIGIBILITY` (per platform), `PATH TO PAYOUT` (YouTube → 1000 subs → days ETA from `AgentController.projection():304`), `PAYOUT READINESS` checklist (`agent.checklist`) |
 | **Terminal** | `view-terminal` | No-code cmd/powershell (`POST /api/terminal/exec`) — see `TERMINAL_REFERENCE.md` |
 | **Customize (⚙)** | `#panel` + `GET/POST /api/settings` | Theme, Widgets, AI Engine, Agent (`enabled`, `defaultNiche`, `focus`, `voice`, limits), Platforms |
@@ -163,4 +163,4 @@ exit
 * `Terminal` → `analyze` → picks `top_niche` → `generate "that niche" tiktok casual` → `publish bulk "that niche" --platforms tiktok --draft` → `ask` for hook.
 
 **“Ask without code”:**
-* `Agent → Talk to GodEye` or `Terminal → ask <question>` — both use `AgentController.ask` with your settings context.
+* `Agent → Talk to ASP` or `Terminal → ask <question>` — both use `AgentController.ask` with your settings context.
