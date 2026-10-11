@@ -1,0 +1,47 @@
+{
+  "$schema": "./node_modules/wrangler/config-schema.json",
+  "name": "asp-agent",
+  "main": "src/index.ts",
+  "compatibility_date": "2026-10-11",
+  "observability": {
+    "enabled": true,
+    "head_sampling_rate": 1
+  },
+  // Non-secret defaults. Secrets (API keys, tokens, DASHBOARD_PASSWORD)
+  // are set via `wrangler secret put` / `wrangler secret bulk` — never here.
+  "vars": {
+    "PORT": "5001",
+    "PYTHONUNBUFFERED": "1",
+    "NVIDIA_MODEL": "meta/muse-glimmer-30b",
+    "OPENROUTER_MODEL": "openai/gpt-4o-mini",
+    "PAYPAL_MODE": "sandbox",
+    "AUTO_POST": "false",
+    "HUMAN_APPROVAL": "true",
+    "DAILY_POST_LIMIT": "10"
+  },
+  "containers": [
+    {
+      "class_name": "ASPContainer",
+      "scheduling_policy": "durable_object",
+      "images": {
+        "base": {
+          "dockerfile": "./Dockerfile"
+        }
+      }
+    }
+  ],
+  "durable_objects": {
+    "bindings": [
+      {
+        "name": "ASP_CONTAINER",
+        "class_name": "ASPContainer"
+      }
+    ]
+  },
+  "exports": {
+    "ASPContainer": {
+      "type": "durable-object",
+      "storage": "sqlite"
+    }
+  }
+}

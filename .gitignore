@@ -3,6 +3,8 @@
 
 # Secrets - never commit real keys
 .env
+.dev.vars
+.secrets.local.json
 config/youtube_token.json
 
 # Runtime data (per-machine state)
@@ -25,3 +27,8 @@ __pycache__/
 *.pyc
 .venv/
 venv/
+
+# Cloudflare / Node (container deploy via wrangler)
+node_modules/
+.wrangler/
+worker-configuration.d.ts

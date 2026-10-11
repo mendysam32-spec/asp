@@ -1,0 +1,21 @@
+# Never bake secrets or machine state into the image
+.env
+.env.*
+!.env.example
+config/youtube_token.json
+config/dashboard_settings.json
+data/*.log
+data/agent.log*
+data/media/*
+!data/media/.gitkeep
+__pycache__/
+*.pyc
+*.pyo
+.venv/
+venv/
+.git/
+.netlify/
+node_modules/
+src/
+wrangler.jsonc
+.dev.vars
