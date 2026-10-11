@@ -1,5 +1,5 @@
 # Quick status check
-$TaskName = "TheRepublicAgent"
+$TaskName = "ASPAgent"
 Write-Host "=== Task Scheduler ==="
 try {
     $t = Get-ScheduledTask -TaskName $TaskName -ErrorAction Stop

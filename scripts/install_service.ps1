@@ -7,7 +7,8 @@ $BaseDir = (Resolve-Path "$PSScriptRoot\..").Path
 $Python = (Get-Command python -ErrorAction SilentlyContinue).Source
 if (-not $Python) { $Python = "C:\Python314\python.exe" }
 $Runner = Join-Path $BaseDir "run_background.py"
-$TaskName = "TheRepublicAgent"
+$TaskName = "ASPAgent"
+$OldTaskNames = @("TheRepublicAgent")
 $LogFile = Join-Path $BaseDir "data\agent.log"
 
 Write-Host "BaseDir: $BaseDir"
@@ -22,6 +23,9 @@ $isAdmin = ([Security.Principal.WindowsPrincipal] [Security.Principal.WindowsIde
 if ($isAdmin) {
     Write-Host "`n[1/3] Removing old task if exists..."
     try { Unregister-ScheduledTask -TaskName $TaskName -Confirm:$false -ErrorAction SilentlyContinue } catch {}
+    foreach ($old in $OldTaskNames) {
+        try { Unregister-ScheduledTask -TaskName $old -Confirm:$false -ErrorAction SilentlyContinue; Write-Host "  -> Removed legacy task '$old'" } catch {}
+    }
     
     Write-Host "[2/3] Creating Task Scheduler task '$TaskName'..."
     $Action = New-ScheduledTaskAction -Execute $Python -Argument "`"$Runner`"" -WorkingDirectory $BaseDir
@@ -32,12 +36,12 @@ if ($isAdmin) {
     
     # Use S4U so it runs whether user is logged in or not, without storing password
     try {
-        Register-ScheduledTask -TaskName $TaskName -Action $Action -Trigger $Trigger1,$Trigger2 -Settings $Settings -Principal $Principal -Description "TheRepublic AI Agent - dashboard + autonomous loop 24/7" | Out-Null
+        Register-ScheduledTask -TaskName $TaskName -Action $Action -Trigger $Trigger1,$Trigger2 -Settings $Settings -Principal $Principal -Description "ASP Agent (Agent SP) - dashboard + autonomous loop 24/7" | Out-Null
         Write-Host "  -> Task registered (logon + startup triggers, auto-restart on failure)"
     } catch {
         Write-Host "  -> S4U failed, trying interactive principal..."
         $Principal2 = New-ScheduledTaskPrincipal -UserId "$env:USERDOMAIN\$env:USERNAME" -LogonType Interactive -RunLevel Highest
-        Register-ScheduledTask -TaskName $TaskName -Action $Action -Trigger $Trigger1 -Settings $Settings -Principal $Principal2 -Description "TheRepublic AI Agent" | Out-Null
+        Register-ScheduledTask -TaskName $TaskName -Action $Action -Trigger $Trigger1 -Settings $Settings -Principal $Principal2 -Description "ASP Agent (Agent SP)" | Out-Null
     }
     
     Write-Host "[3/3] Starting task now..."

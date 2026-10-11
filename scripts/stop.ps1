@@ -1,6 +1,7 @@
 # Stop the background agent
-$TaskName = "TheRepublicAgent"
+$TaskName = "ASPAgent"
 try { Stop-ScheduledTask -TaskName $TaskName -ErrorAction SilentlyContinue; Write-Host "Stopped scheduled task $TaskName" } catch {}
+try { Unregister-ScheduledTask -TaskName "TheRepublicAgent" -Confirm:$false -ErrorAction SilentlyContinue } catch {}
 # Kill any python running run_background.py
 Get-CimInstance Win32_Process | Where-Object { $_.CommandLine -like "*run_background.py*" } | ForEach-Object {
     Write-Host "Killing PID $($_.ProcessId): $($_.CommandLine)"

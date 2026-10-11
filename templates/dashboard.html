@@ -51,9 +51,9 @@ body[data-density="spacious"]{--pad:26px}
 /* sidebar */
 .sidebar{width:236px;flex-shrink:0;position:sticky;top:var(--pad);height:calc(100vh - var(--pad)*2);display:flex;flex-direction:column;padding:20px 16px}
 .logo{display:flex;align-items:center;gap:12px;margin-bottom:26px}
-.logo .god-eye{width:40px;height:40px;border-radius:12px;background:radial-gradient(120% 120% at 30% 30%, rgba(255,255,255,0.12), transparent), linear-gradient(135deg, rgba(108,92,231,0.18), rgba(0,210,255,0.12));border:1px solid rgba(255,255,255,0.14);display:grid;place-items:center;box-shadow:0 0 22px color-mix(in srgb, var(--accent) 42%, transparent), 0 0 0 1px rgba(255,255,255,0.04) inset;animation:eyeIdle 4.2s ease-in-out infinite}
-.logo .god-eye.listening{animation:eyePulse 0.9s ease-in-out infinite; box-shadow:0 0 28px var(--accent2), 0 0 0 1px rgba(255,255,255,0.08) inset}
-.logo .god-eye.speaking{animation:eyeSpeak 0.45s ease-in-out infinite}
+.logo .asp-eye{width:40px;height:40px;border-radius:12px;background:radial-gradient(120% 120% at 30% 30%, rgba(255,255,255,0.12), transparent), linear-gradient(135deg, rgba(108,92,231,0.18), rgba(0,210,255,0.12));border:1px solid rgba(255,255,255,0.14);display:grid;place-items:center;box-shadow:0 0 22px color-mix(in srgb, var(--accent) 42%, transparent), 0 0 0 1px rgba(255,255,255,0.04) inset;animation:eyeIdle 4.2s ease-in-out infinite}
+.logo .asp-eye.listening{animation:eyePulse 0.9s ease-in-out infinite; box-shadow:0 0 28px var(--accent2), 0 0 0 1px rgba(255,255,255,0.08) inset}
+.logo .asp-eye.speaking{animation:eyeSpeak 0.45s ease-in-out infinite}
 @keyframes eyeIdle{0%,92%,100%{transform:scaleY(1)}94%{transform:scaleY(0.12)}96%{transform:scaleY(1)}}
 @keyframes eyePulse{0%,100%{transform:scale(1); filter:brightness(1)}50%{transform:scale(1.04); filter:brightness(1.18)}}
 @keyframes eyeSpeak{0%,100%{transform:scale(1)}50%{transform:scale(1.02)}}
@@ -240,7 +240,7 @@ body[data-density="spacious"]{--pad:26px}
 <div class="layout">
   <aside class="sidebar glass">
     <div class="logo">
-      <div class="god-eye" id="godEye" title="ASP is watching">
+      <div class="asp-eye" id="aspEye" title="ASP is watching">
         <svg width="40" height="40" viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg" aria-label="ASP logo">
           <defs>
             <linearGradient id="geye" x1="0" y1="0" x2="40" y2="40" gradientUnits="userSpaceOnUse">
@@ -1272,7 +1272,7 @@ async function sendChat(prefill){
   inp.value='';
   feed.insertAdjacentHTML('beforeend',`<div class="bub ag typing"><span class="spin"></span> thinking…</div>`);
   feed.scrollTop=feed.scrollHeight;
-  setGodEye('speaking');
+  setAspEye('speaking');
   const payload={message:m, action:$('chatAction')?.value||'chat',
     provider:$('chatProv')?.value||undefined, model:$('chatModel')?.value?.trim()||undefined,
     reasoning:$('chatReason')?.value||undefined,
@@ -1294,7 +1294,7 @@ async function sendChat(prefill){
     if(feed.lastElementChild) feed.lastElementChild.remove();
     feed.insertAdjacentHTML('beforeend',`<div class="bub ag">Network error — is ASP online?</div>`);
   }
-  setGodEye('idle');
+  setAspEye('idle');
 }
 function exportChat(){
   const txt=CHAT_HIST.map(m=>`${m.role.toUpperCase()}: ${m.text}`).join('\n\n');
@@ -1327,9 +1327,9 @@ function speakText(t){
   if(!_voices) _voices=speechSynthesis.getVoices();
   const pref=_voices.find(v=>/Jenny|Aria|Sonia|Google UK|Microsoft/i.test(v.name))||_voices[0];
   if(pref) u.voice=pref;
-  u.onstart=()=>setGodEye('speaking');
-  u.onend=()=>setGodEye('idle');
-  u.onerror=()=>setGodEye('idle');
+  u.onstart=()=>setAspEye('speaking');
+  u.onend=()=>setAspEye('idle');
+  u.onerror=()=>setAspEye('idle');
   speechSynthesis.speak(u);
 }
 if('speechSynthesis' in window){
@@ -1786,8 +1786,8 @@ document.addEventListener('change',e=>{
 });
 
 /* --- ASP Alive Tier 1 --- */
-function setGodEye(state){
-  const el=document.getElementById('godEye');
+function setAspEye(state){
+  const el=document.getElementById('aspEye');
   if(!el) return;
   el.classList.remove('listening','speaking');
   if(state==='listening') el.classList.add('listening');
@@ -1808,7 +1808,7 @@ function toggleVoice(){
   voiceOn=!voiceOn;
   const lbl=document.getElementById('voiceLabel');
   if(lbl) lbl.textContent = voiceOn ? 'Voice: on — click mic to speak' : 'Voice: off';
-  setGodEye(voiceOn?'idle':'idle');
+  setAspEye(voiceOn?'idle':'idle');
   if(voiceOn) startListening();
   else stopListening();
 }
@@ -1818,14 +1818,14 @@ function startListening(){
   if(recog) try{recog.stop();}catch(e){}
   recog=new SR();
   recog.lang='en-US'; recog.interimResults=false; recog.maxAlternatives=1;
-  recog.onstart=()=>{ setGodEye('listening'); document.getElementById('voiceLabel').textContent='Listening… speak now'; };
+  recog.onstart=()=>{ setAspEye('listening'); document.getElementById('voiceLabel').textContent='Listening… speak now'; };
   recog.onend=()=>{
     if(voiceOn && document.visibilityState==='visible'){
-      try{ recog.start(); }catch(e){ setGodEye('idle'); }
-    } else setGodEye('idle');
+      try{ recog.start(); }catch(e){ setAspEye('idle'); }
+    } else setAspEye('idle');
   };
   recog.onerror=(e)=>{
-    if(e.error==='not-allowed') { alert('Microphone blocked — allow mic in browser site settings.'); voiceOn=false; setGodEye('idle'); }
+    if(e.error==='not-allowed') { alert('Microphone blocked — allow mic in browser site settings.'); voiceOn=false; setAspEye('idle'); }
   };
   recog.onresult=(e)=>{
     const t=(e.results[0] && e.results[0][0] && e.results[0][0].transcript)||'';
@@ -1840,13 +1840,13 @@ function startListening(){
 function stopListening(){
   if(recog) try{ recog.stop(); recog=null; }catch(e){}
   try{ speechSynthesis.cancel(); }catch(e){}
-  setGodEye('idle');
+  setAspEye('idle');
 }
 // iris follows cursor (subtle, inside eye bounds)
 (function eyeTrack(){
   const iris=document.getElementById('eyeIris');
   const pupil=document.getElementById('eyePupil');
-  const eye=document.getElementById('godEye');
+  const eye=document.getElementById('aspEye');
   if(!iris||!pupil||!eye) return;
   let mx=20,my=20, raf=null;
   document.addEventListener('mousemove', e=>{
@@ -1861,7 +1861,7 @@ function stopListening(){
       pupil.setAttribute('cx', mx.toFixed(2));
       pupil.setAttribute('cy', my.toFixed(2));
       // highlight follows slightly
-      const hl=document.querySelector('#godEye circle[opacity="0.85"]');
+      const hl=document.querySelector('#aspEye circle[opacity="0.85"]');
       if(hl){ hl.setAttribute('cx', (mx-2.5).toFixed(2)); hl.setAttribute('cy', (my-2.8).toFixed(2)); }
       raf=null;
     });
